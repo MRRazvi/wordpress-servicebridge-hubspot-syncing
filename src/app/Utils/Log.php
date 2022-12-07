@@ -13,7 +13,7 @@ class Log
     public function __construct()
     {
         $this->log = new Logger('app');
-        $this->log->pushHandler(new StreamHandler(__DIR__ . '../../storage/logs/app.log', Level::Debug));
+        $this->log->pushHandler(new StreamHandler(__DIR__ . '/../../storage/logs/app.log', Level::Debug));
     }
 
     public function info($message)

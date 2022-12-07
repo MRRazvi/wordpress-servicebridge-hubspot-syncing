@@ -9,4 +9,8 @@ $dotenv = new Dotenv();
 $dotenv->load(__DIR__ . '/../.env');
 
 $clientSB = new ServiceBridge();
+
 $clientSB->login();
+dump($clientSB->session_key);
+
+$clientSB->estimates();
