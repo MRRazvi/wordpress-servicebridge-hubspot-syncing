@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use Symfony\Component\HttpClient\HttpClient;
+
 class ServiceBridge
 {
     public $base_url = 'https://cloud.servicebridge.com/api/v4';
