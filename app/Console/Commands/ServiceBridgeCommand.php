@@ -2,6 +2,8 @@
 
 namespace App\Console\Commands;
 
+use App\Models\Estimate;
+use App\Models\WorkOrder;
 use Illuminate\Console\Command;
 use App\Http\Controllers\ServiceBridgeController;
 
@@ -13,17 +15,17 @@ class ServiceBridgeCommand extends Command
 
     public function handle()
     {
-        $sb = new ServiceBridgeController();
-        $sb->login();
-        $estimates = $sb->get_estimates();
-        $work_orders = $sb->get_work_orders();
+        // $sb = new ServiceBridgeController();
+        // $sb->login();
+        // $estimates = $sb->get_estimates();
+        // $work_orders = $sb->get_work_orders();
 
-        foreach ($work_orders as $_work_order) {
-            foreach ($_work_order['value'] as $work_order) {
-                dd($work_order);
-            }
-        }
+        $estimates_finished = Estimate::whereIn('Status', ['Finished', 'WonEstimate', 'LostEstimate'])->get();
+        $estimates_not_finished = Estimate::where('Status', '!=', 'Finished')->get();
 
-        dump($estimates, $work_orders);
+        $work_orders_completed = WorkOrder::where('status', 'Completed')->get();
+        $work_orders_not_completed = WorkOrder::where('status', '!=', 'Completed')->get();
+
+        dump($estimates_finished, $estimates_not_finished, $work_orders_completed, $work_orders_not_completed);
     }
 }

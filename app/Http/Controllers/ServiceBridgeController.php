@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Estimate;
+use App\Models\WorkOrder;
 use GuzzleHttp\Client;
 use GuzzleHttp\Promise;
 
@@ -61,6 +63,16 @@ class ServiceBridgeController
             Promise\Utils::unwrap($estimates),
         )->wait();
 
+        foreach ($estimates as $_estimate) {
+            foreach ($_estimate['value'] as $estimate) {
+                Estimate::updateOrCreate([
+                    'estimate_id' => $estimate->Id,
+                    'status' => $estimate->Status,
+                    'blob' => json_encode($estimate)
+                ]);
+            }
+        }
+
         return $estimates;
     }
 
@@ -110,6 +122,16 @@ class ServiceBridgeController
         $work_orders = Promise\Utils::settle(
             Promise\Utils::unwrap($work_orders),
         )->wait();
+
+        foreach ($work_orders as $_work_order) {
+            foreach ($_work_order['value'] as $work_order) {
+                WorkOrder::updateOrCreate([
+                    'work_order_id' => $work_order->Id,
+                    'status' => $work_order->Status,
+                    'blob' => json_encode($work_order)
+                ]);
+            }
+        }
 
         return $work_orders;
     }

@@ -9,7 +9,7 @@ return new class extends Migration {
     {
         Schema::create('estimates', function (Blueprint $table) {
             $table->id();
-            $table->unsignedInteger('estimate_id')->unique();
+            $table->string('estimate_id')->unique();
             $table->string('status');
             $table->json('blob');
             $table->timestamps();

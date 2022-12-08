@@ -9,7 +9,7 @@ return new class extends Migration {
     {
         Schema::create('work_orders', function (Blueprint $table) {
             $table->id();
-            $table->unsignedInteger('work_order_id')->unique();
+            $table->string('work_order_id')->unique();
             $table->string('status');
             $table->json('blob');
             $table->timestamps();
