@@ -14,10 +14,15 @@ class ServiceBridgeCommand extends Command
     public function handle()
     {
         $sb = new ServiceBridgeController();
-
         $sb->login();
         $estimates = $sb->get_estimates();
         $work_orders = $sb->get_work_orders();
+
+        foreach ($work_orders as $_work_order) {
+            foreach ($_work_order['value'] as $work_order) {
+                dd($work_order);
+            }
+        }
 
         dump($estimates, $work_orders);
     }
