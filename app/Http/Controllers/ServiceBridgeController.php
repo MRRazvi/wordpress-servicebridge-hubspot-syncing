@@ -46,7 +46,7 @@ class ServiceBridgeController
                     'query' => [
                         'sessionKey' => $this->session_key,
                         'page' => $i,
-                        'pageSize' => 500,
+                        'pageSize' => (env('APP_ENV') == 'local') ? 5 : 500,
                         'includeInactiveCustomers' => true,
                         'includeInventoryInfo' => true
                     ]
@@ -97,7 +97,7 @@ class ServiceBridgeController
                     'query' => [
                         'sessionKey' => $this->session_key,
                         'page' => $i,
-                        'pageSize' => 500,
+                        'pageSize' => (env('APP_ENV') == 'local') ? 5 : 500,
                         'includeInactiveCustomers' => true
                     ]
                 ]
