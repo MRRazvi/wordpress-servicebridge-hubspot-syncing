@@ -66,6 +66,9 @@ class ServiceBridgeController
 
     public function get_estimates_count()
     {
+        if (env('APP_ENV') == 'local')
+            return 500;
+
         $response = $this->client->request(
             'GET',
             sprintf('%s/Estimates', $this->base_url),
@@ -113,6 +116,9 @@ class ServiceBridgeController
 
     public function get_work_orders_count()
     {
+        if (env('APP_ENV') == 'local')
+            return 500;
+
         $response = $this->client->request(
             'GET',
             sprintf('%s/WorkOrders', $this->base_url),
