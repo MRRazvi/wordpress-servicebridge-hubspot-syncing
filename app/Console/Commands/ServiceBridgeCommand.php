@@ -16,10 +16,9 @@ class ServiceBridgeCommand extends Command
         $sb = new ServiceBridgeController();
 
         $sb->login();
-        dump($sb->session_key);
+        $estimates = $sb->get_estimates();
+        $work_orders = $sb->get_work_orders();
 
-        $sb->get_estimates();
-
-        echo "1";
+        dump($estimates, $work_orders);
     }
 }

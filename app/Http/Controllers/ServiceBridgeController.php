@@ -2,11 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use GuzzleHttp\Pool;
 use GuzzleHttp\Client;
-use GuzzleHttp\Psr7\Request;
-use GuzzleHttp\Psr7\Response;
-use GuzzleHttp\Exception\RequestException;
+use GuzzleHttp\Promise;
 
 class ServiceBridgeController
 {
@@ -22,7 +19,8 @@ class ServiceBridgeController
 
     public function login()
     {
-        $response = $this->client->post(
+        $response = $this->client->request(
+            'POST',
             sprintf('%s/Login', $this->base_url),
             [
                 'json' => [
@@ -38,32 +36,96 @@ class ServiceBridgeController
 
     public function get_estimates()
     {
-        dump($this->build_estimate_url(1));
+        $estimates = [];
 
-        $requests = function ($total) {
-            for ($i = 1; $i <= $total; $i++) {
-                yield new Request('GET', $this->build_estimate_url($i));
-            }
-        };
+        for ($i = 1; $i <= $this->get_estimates_count() / 500; $i++) {
+            $estimates[] = $this->client->requestAsync(
+                'GET',
+                sprintf('%s/Estimates', $this->base_url),
+                [
+                    'query' => [
+                        'sessionKey' => $this->session_key,
+                        'page' => $i,
+                        'pageSize' => 500,
+                        'includeInactiveCustomers' => true,
+                        'includeInventoryInfo' => true
+                    ]
+                ]
+            )->then(function ($response) use ($i) {
+                $response = json_decode($response->getBody()->getContents());
+                return $response->Data;
+            });
+        }
+
+        $estimates = Promise\Utils::settle(
+            Promise\Utils::unwrap($estimates),
+        )->wait();
+
+        return $estimates;
     }
 
-    public function get_estimate_count()
+    public function get_estimates_count()
     {
-
-    }
-
-    private function build_estimate_url($page)
-    {
-        return sprintf(
-            '%s/Estimates?%s',
-            $this->base_url,
-            http_build_query([
-                'sessionKey' => $this->session_key,
-                'page' => $page,
-                'pageSize' => 500,
-                'includeInventoryInfo' => true,
-                'includeInactiveCustomers' => true
-            ])
+        $response = $this->client->request(
+            'GET',
+            sprintf('%s/Estimates', $this->base_url),
+            [
+                'query' => [
+                    'sessionKey' => $this->session_key,
+                    'page' => 1,
+                    'pageSize' => 1
+                ]
+            ]
         );
+
+        $response = json_decode($response->getBody()->getContents());
+        return $response->TotalCount;
+    }
+
+    public function get_work_orders()
+    {
+        $work_orders = [];
+
+        for ($i = 1; $i <= $this->get_work_orders_count() / 500; $i++) {
+            $work_orders[] = $this->client->requestAsync(
+                'GET',
+                sprintf('%s/WorkOrders', $this->base_url),
+                [
+                    'query' => [
+                        'sessionKey' => $this->session_key,
+                        'page' => $i,
+                        'pageSize' => 500,
+                        'includeInactiveCustomers' => true
+                    ]
+                ]
+            )->then(function ($response) use ($i) {
+                $response = json_decode($response->getBody()->getContents());
+                return $response->Data;
+            });
+        }
+
+        $work_orders = Promise\Utils::settle(
+            Promise\Utils::unwrap($work_orders),
+        )->wait();
+
+        return $work_orders;
+    }
+
+    public function get_work_orders_count()
+    {
+        $response = $this->client->request(
+            'GET',
+            sprintf('%s/WorkOrders', $this->base_url),
+            [
+                'query' => [
+                    'sessionKey' => $this->session_key,
+                    'page' => 1,
+                    'pageSize' => 1
+                ]
+            ]
+        );
+
+        $response = json_decode($response->getBody()->getContents());
+        return $response->TotalCount;
     }
 }
