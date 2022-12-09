@@ -9,8 +9,10 @@ return new class extends Migration {
     {
         Schema::create('estimates', function (Blueprint $table) {
             $table->id();
+            $table->integer('sb_account_id');
             $table->string('estimate_id')->unique();
             $table->string('status');
+            $table->integer('version')->nullable();
             $table->json('blob');
             $table->timestamps();
         });

@@ -19,6 +19,7 @@ class ServiceBridgeDatabaseCommand extends Command
         $service_bridge_accounts = ServiceBridgeAccount::all();
 
         foreach ($service_bridge_accounts as $service_bridge_account) {
+            $account_id = $service_bridge_account->id;
             $user_id = $service_bridge_account->user_id;
             $user_pass = $service_bridge_account->user_pass;
 
@@ -31,9 +32,14 @@ class ServiceBridgeDatabaseCommand extends Command
                 foreach ($_estimate['value'] as $estimate) {
                     Estimate::updateOrCreate([
                         'estimate_id' => $estimate->Id,
-                        'status' => $estimate->Status,
-                        'blob' => json_encode($estimate)
-                    ]);
+                        'version' => $estimate->Metadata->Version
+                    ], [
+                            'sb_account_id' => $account_id,
+                            'status' => $estimate->Status,
+                            'blob' => json_encode($estimate),
+                            'created_at' => $estimate->Metadata->CreatedOn,
+                            'updated_at' => $estimate->Metadata->UpdatedOn
+                        ]);
                 }
             }
 
@@ -41,9 +47,14 @@ class ServiceBridgeDatabaseCommand extends Command
                 foreach ($_work_order['value'] as $work_order) {
                     WorkOrder::updateOrCreate([
                         'work_order_id' => $work_order->Id,
-                        'status' => $work_order->Status,
-                        'blob' => json_encode($work_order)
-                    ]);
+                        'version' => $work_order->Metadata->Version
+                    ], [
+                            'sb_account_id' => $account_id,
+                            'status' => $work_order->Status,
+                            'blob' => json_encode($work_order),
+                            'created_at' => $work_order->Metadata->CreatedOn,
+                            'updated_at' => $work_order->Metadata->UpdatedOn
+                        ]);
                 }
             }
         }

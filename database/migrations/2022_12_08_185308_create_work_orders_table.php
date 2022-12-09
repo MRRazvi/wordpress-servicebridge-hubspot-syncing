@@ -9,8 +9,10 @@ return new class extends Migration {
     {
         Schema::create('work_orders', function (Blueprint $table) {
             $table->id();
+            $table->integer('sb_account_id');
             $table->string('work_order_id')->unique();
             $table->string('status');
+            $table->integer('version')->nullable();
             $table->json('blob');
             $table->timestamps();
         });
