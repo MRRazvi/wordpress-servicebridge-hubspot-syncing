@@ -4,5 +4,5 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
-    Artisan::call('sync:sb');
+    Artisan::call('sb:database');
 });

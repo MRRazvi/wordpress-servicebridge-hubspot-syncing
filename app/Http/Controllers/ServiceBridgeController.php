@@ -2,21 +2,27 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Estimate;
-use App\Models\WorkOrder;
 use GuzzleHttp\Client;
 use GuzzleHttp\Promise;
 
 class ServiceBridgeController
 {
     public $client;
+
     public $base_url;
+
+    public $user_id;
+
+    public $user_pass;
+
     public $session_key;
 
-    public function __construct()
+    public function __construct($user_id, $user_pass)
     {
         $this->client = new Client();
         $this->base_url = env('SB_API_BASE_URL');
+        $this->user_id = $user_id;
+        $this->user_pass = $user_pass;
     }
 
     public function login()
@@ -26,14 +32,16 @@ class ServiceBridgeController
             sprintf('%s/Login', $this->base_url),
             [
                 'json' => [
-                    'UserId' => env('SB_API_USER_ID'),
-                    'Password' => env('SB_API_USER_PASS')
+                    'UserId' => $this->user_id,
+                    'Password' => $this->user_pass
                 ]
             ]
         );
 
         $response = json_decode($response->getBody()->getContents());
         $this->session_key = $response->Data;
+
+        return $response->Data;
     }
 
     public function get_estimates()
@@ -62,16 +70,6 @@ class ServiceBridgeController
         $estimates = Promise\Utils::settle(
             Promise\Utils::unwrap($estimates),
         )->wait();
-
-        foreach ($estimates as $_estimate) {
-            foreach ($_estimate['value'] as $estimate) {
-                Estimate::updateOrCreate([
-                    'estimate_id' => $estimate->Id,
-                    'status' => $estimate->Status,
-                    'blob' => json_encode($estimate)
-                ]);
-            }
-        }
 
         return $estimates;
     }
@@ -122,16 +120,6 @@ class ServiceBridgeController
         $work_orders = Promise\Utils::settle(
             Promise\Utils::unwrap($work_orders),
         )->wait();
-
-        foreach ($work_orders as $_work_order) {
-            foreach ($_work_order['value'] as $work_order) {
-                WorkOrder::updateOrCreate([
-                    'work_order_id' => $work_order->Id,
-                    'status' => $work_order->Status,
-                    'blob' => json_encode($work_order)
-                ]);
-            }
-        }
 
         return $work_orders;
     }
