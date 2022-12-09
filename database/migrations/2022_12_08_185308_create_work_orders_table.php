@@ -13,6 +13,7 @@ return new class extends Migration {
             $table->string('work_order_id')->unique();
             $table->string('status');
             $table->integer('version')->nullable();
+            $table->boolean('synced')->default(false);
             $table->json('blob');
             $table->timestamps();
         });
