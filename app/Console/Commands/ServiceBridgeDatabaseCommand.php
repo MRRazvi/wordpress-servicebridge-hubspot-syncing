@@ -100,7 +100,5 @@ class ServiceBridgeDatabaseCommand extends Command
                 }
             }
         }
-
-        dump(1);
     }
 }
