@@ -144,4 +144,52 @@ class ServiceBridgeController
         $response = json_decode($response->getBody()->getContents());
         return $response->TotalCount;
     }
+
+    public function get_contact($id)
+    {
+        $response = $this->client->request(
+            'GET',
+            sprintf('%s/Contacts/%s', $this->base_url, $id),
+            [
+                'query' => [
+                    'sessionKey' => $this->session_key
+                ]
+            ]
+        );
+
+        $response = json_decode($response->getBody()->getContents());
+        return $response->Data;
+    }
+
+    public function get_customer($id)
+    {
+        $response = $this->client->request(
+            'GET',
+            sprintf('%s/Customers/%s', $this->base_url, $id),
+            [
+                'query' => [
+                    'sessionKey' => $this->session_key
+                ]
+            ]
+        );
+
+        $response = json_decode($response->getBody()->getContents());
+        return $response->Data;
+    }
+
+    public function get_location($id)
+    {
+        $response = $this->client->request(
+            'GET',
+            sprintf('%s/Locations/%s', $this->base_url, $id),
+            [
+                'query' => [
+                    'sessionKey' => $this->session_key
+                ]
+            ]
+        );
+
+        $response = json_decode($response->getBody()->getContents());
+        return $response->Data;
+    }
 }

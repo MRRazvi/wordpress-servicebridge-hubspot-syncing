@@ -2,31 +2,22 @@
 
 namespace App\Console\Commands;
 
+use App\Models\Estimate;
 use Illuminate\Console\Command;
 
 class HubSpotCommand extends Command
 {
-    /**
-     * The name and signature of the console command.
-     *
-     * @var string
-     */
-    protected $signature = 'command:name';
+    protected $signature = 'hs:sync';
 
-    /**
-     * The console command description.
-     *
-     * @var string
-     */
-    protected $description = 'Command description';
+    protected $description = 'Check database for any change and update it on HubSpot.';
 
-    /**
-     * Execute the console command.
-     *
-     * @return int
-     */
     public function handle()
     {
-        return Command::SUCCESS;
+        $hubspot = \HubSpot\Factory::createWithDeveloperApiKey(env('HUBSPOT_API_KEY'));
+
+        $estimates = Estimate::where('synced', false)->get();
+        foreach ($estimates as $estimate) {
+
+        }
     }
 }

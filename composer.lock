@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "6ab5bb154f8fa67e83503647d4488083",
+    "content-hash": "3b875e6be4b06e21a403d6f4275badb6",
     "packages": [
         {
             "name": "brick/math",
@@ -898,22 +898,25 @@
             "time": "2022-10-26T14:07:24+00:00"
         },
         {
-            "name": "hubspot/hubspot-php",
-            "version": "5.0.1",
+            "name": "hubspot/api-client",
+            "version": "9.1.0",
             "source": {
                 "type": "git",
-                "url": "https://github.com/HubSpot/hubspot-php.git",
-                "reference": "bd8606631e315e1f6f4c7b6607ecaae8259c07b7"
+                "url": "https://github.com/HubSpot/hubspot-api-php.git",
+                "reference": "e03278a0dc868cab4738136e95e275b73bd8e43c"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/HubSpot/hubspot-php/zipball/bd8606631e315e1f6f4c7b6607ecaae8259c07b7",
-                "reference": "bd8606631e315e1f6f4c7b6607ecaae8259c07b7",
+                "url": "https://api.github.com/repos/HubSpot/hubspot-api-php/zipball/e03278a0dc868cab4738136e95e275b73bd8e43c",
+                "reference": "e03278a0dc868cab4738136e95e275b73bd8e43c",
                 "shasum": ""
             },
             "require": {
+                "ext-curl": "*",
                 "ext-json": "*",
+                "ext-mbstring": "*",
                 "guzzlehttp/guzzle": "^7.3",
+                "guzzlehttp/psr7": "^1.7 || ^2.0",
                 "php": ">=7.3"
             },
             "require-dev": {
@@ -923,11 +926,10 @@
             },
             "type": "library",
             "autoload": {
-                "files": [
-                    "src/helpers.php"
-                ],
                 "psr-4": {
-                    "SevenShores\\Hubspot\\": "src/"
+                    "HubSpot\\": "lib/",
+                    "Hubspot\\Tests\\": "tests/",
+                    "HubSpot\\Client\\": "codegen/"
                 }
             },
             "notification-url": "https://packagist.org/downloads/",
@@ -936,21 +938,24 @@
             ],
             "authors": [
                 {
-                    "name": "Ryan Winchester",
-                    "email": "fungku@gmail.com",
-                    "homepage": "http://ryanwinchester.ca"
+                    "name": "HubSpot",
+                    "homepage": "https://hubspot.com/"
                 }
             ],
-            "description": "HubSpot PHP API client",
+            "description": "Hubspot API client",
+            "homepage": "https://hubspot.com/",
             "keywords": [
                 "api",
-                "hubspot"
+                "hubspot",
+                "php",
+                "sdk",
+                "swagger"
             ],
             "support": {
-                "issues": "https://github.com/HubSpot/hubspot-php/issues",
-                "source": "https://github.com/HubSpot/hubspot-php/tree/v5.0.1"
+                "issues": "https://github.com/HubSpot/hubspot-api-php/issues",
+                "source": "https://github.com/HubSpot/hubspot-api-php/tree/9.1.0"
             },
-            "time": "2022-08-22T13:32:01+00:00"
+            "time": "2022-12-06T13:27:37+00:00"
         },
         {
             "name": "laravel/framework",
