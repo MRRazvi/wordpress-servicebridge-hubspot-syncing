@@ -3,12 +3,14 @@
 namespace App\Http\Controllers;
 
 use \HubSpot\Factory;
+use Illuminate\Support\Facades\Http;
+use SevenShores\Hubspot\Factory as LegacyFactory;
 use \HubSpot\Client\Crm\Contacts\Model\Filter as ContactFilter;
 use \HubSpot\Client\Crm\Contacts\Model\FilterGroup as ContactFilterGroup;
-use \HubSpot\Client\Crm\Contacts\Model\PublicObjectSearchRequest as ContactPublicObjectSearchRequest;
 use \HubSpot\Client\Crm\Contacts\Model\SimplePublicObjectInput as ContactInput;
+use HubSpot\Client\Crm\Deals\Model\SimplePublicObjectInput as DealSimplePublicObjectInput;
 use HubSpot\Client\Crm\Contacts\Model\SimplePublicObjectInput as ContactSimplePublicObjectInput;
-use Illuminate\Support\Facades\Http;
+use \HubSpot\Client\Crm\Contacts\Model\PublicObjectSearchRequest as ContactPublicObjectSearchRequest;
 
 class HubSpotController
 {
@@ -74,6 +76,23 @@ class HubSpotController
         return $this->client->crm()->contacts()->basicApi()->update($contact_id, $data);
     }
 
+    public function search_deal($contact_id)
+    {
+        $hs = LegacyFactory::create($this->api_key);
+        $deals = $hs->deals()->associatedWithContact($contact_id, [
+            'properties' => [
+                'dealname',
+                'amount'
+            ]
+        ]);
+
+        if ($deals) {
+            return $deals->deals[0];
+        }
+
+        return [];
+    }
+
     public function get_deal($id)
     {
         return $this->client->crm()->deals()->basicApi()->getById($id);
@@ -117,5 +136,14 @@ class HubSpotController
         );
 
         return $response->json();
+    }
+
+    public function update_deal($deal_id, $data)
+    {
+        $data = new DealSimplePublicObjectInput([
+            'properties' => $data
+        ]);
+
+        return $this->client->crm()->deals()->basicApi()->update($deal_id, $data);
     }
 }
