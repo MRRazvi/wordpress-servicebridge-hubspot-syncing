@@ -86,7 +86,7 @@ class HubSpotController
             ]
         ]);
 
-        if ($deals) {
+        if ($deals->deals) {
             return $deals->deals[0];
         }
 

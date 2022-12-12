@@ -8,8 +8,6 @@ use App\Models\Estimate;
 use App\Models\ServiceBridgeAccount;
 use App\Models\WorkOrder;
 use Illuminate\Console\Command;
-use SebastianBergmann\CodeCoverage\Report\Html\Dashboard;
-use Termwind\Components\Dd;
 
 class HubSpotCommand extends Command
 {
@@ -23,7 +21,7 @@ class HubSpotCommand extends Command
         $sb_accounts = $this->get_sb_accounts();
 
         $this->sync_estimates($hs, $sb_accounts);
-        $this->sync_work_orders($hs, $sb_accounts);
+        // $this->sync_work_orders($hs, $sb_accounts);
     }
 
     private function sync_estimates($hs, $sb_accounts)
@@ -67,16 +65,18 @@ class HubSpotCommand extends Command
                     $hs->update_contact($hs_contact['id'], $input);
 
                     $deal = $hs->search_deal($hs_contact['id']);
-                    $hs->update_deal(
-                        $deal->dealId,
-                        [
-                            'dealname' => sprintf('%s - %s - %s', $data->EstimateNumber, $sb_customer_location->AddressLine1, $data->Description),
-                            'amount' => $this->get_estimate_deal_price($data)
-                        ]
-                    );
+                    if ($deal) {
+                        $hs->update_deal(
+                            $deal->dealId,
+                            [
+                                'dealname' => sprintf('%s - %s - %s', $data->EstimateNumber, $sb_customer_location->AddressLine1, $data->Description),
+                                'amount' => $this->get_estimate_deal_price($data)
+                            ]
+                        );
+                    }
                 } else {
-                    dump("estimate: creatge contact => " . $estimate->estimate_id);
-                    $hs->create_contact($input);
+                    dump("estimate: create contact => " . $estimate->estimate_id);
+                    $hs_contact = $hs->create_contact($input);
 
                     if (isset($data->EstimateLines)) {
                         $hs->create_deal($hs_contact['id'], [
@@ -90,10 +90,10 @@ class HubSpotCommand extends Command
                     }
                 }
 
-                // $estimate->synced = true;
-                // $estimate->save();
+                $estimate->synced = true;
+                $estimate->save();
             } catch (\Exception $e) {
-                dump("error: " . $e->getMessage());
+                dd("error: " . $e->getMessage());
             }
         }
     }
