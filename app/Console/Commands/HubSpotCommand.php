@@ -6,6 +6,7 @@ use App\Http\Controllers\HubSpotController;
 use App\Http\Controllers\ServiceBridgeController;
 use App\Models\Estimate;
 use App\Models\ServiceBridgeAccount;
+use App\Models\WorkOrder;
 use Illuminate\Console\Command;
 
 class HubSpotCommand extends Command
@@ -19,8 +20,8 @@ class HubSpotCommand extends Command
         $hs = new HubSpotController(env('HUBSPOT_API_KEY'));
         $sb_accounts = $this->get_sb_accounts();
 
-        $this->sync_estimates($hs, $sb_accounts);
-        $this->sync_work_orders($sb_accounts);
+        // $this->sync_estimates($hs, $sb_accounts);
+        $this->sync_work_orders($hs, $sb_accounts);
     }
 
     private function sync_estimates($hs, $sb_accounts)
@@ -80,8 +81,47 @@ class HubSpotCommand extends Command
         }
     }
 
-    private function sync_work_orders($sb_accounts)
+    private function sync_work_orders($hs, $sb_accounts)
     {
+        $work_orders = WorkOrder::where('synced', false)->get();
+        foreach ($work_orders as $work_order) {
+            $sb = $sb_accounts[$work_order->sb_account_id];
+            $data = $sb->get_work_order($work_order->work_order_id);
+
+            // only completed work orders need to be sync
+            if ($data->Status != 'Completed') {
+                $work_order->synced = true;
+                $work_order->save();
+                continue;
+            }
+
+            $hs_contact = $hs->get_contact($data->Contact->Email);
+            if ($hs_contact) {
+                // update contact on hubspot
+                dump("has contact", $work_order->work_order_id);
+            } else {
+                $sb_work_order = $sb->get_customer($data->Customer->Id);
+                $sb_work_order_contact = $sb_work_order->DefaultServiceLocation->PrimaryContact;
+                $sb_work_order_location = $sb_work_order->DefaultServiceLocation;
+
+                $hs_contact = $hs->create_contact([
+                    'firstname' => $sb_work_order_contact->FirstName,
+                    'lastname' => $sb_work_order_contact->LastName,
+                    'email' => $sb_work_order_contact->Email,
+                    'phone' => $sb_work_order_contact->CellPhoneNumber ?? $sb_work_order_contact->PhoneNumber ?? '',
+                    'address' => $sb_work_order_location->AddressLine1,
+                    'city' => $sb_work_order_location->City,
+                    'zip' => $sb_work_order_location->PostalCode,
+                    'lifecyclestage' => count($data->WorkOrderLines ?? []) > 0 ? 'customer' : 'opportunity',
+                    'status_from_sb' => $this->get_status_of_work_order_for_hs($data),
+                    'notat_om_aktivitet_i_service_bridge' => sprintf('%s - %s - %s', $data->WorkOrderNumber, $sb_work_order_location->AddressLine1, $data->Description),
+                    'company' => $sb_work_order->CompanyName ?? ''
+                ]);
+
+                $work_order->synced = true;
+                $work_order->save();
+            }
+        }
     }
 
     private function get_sb_accounts()
@@ -110,6 +150,14 @@ class HubSpotCommand extends Command
             default:
                 return '';
         }
+    }
+
+    private function get_status_of_work_order_for_hs($work_order)
+    {
+        if (preg_match('/-/mui', $work_order->WorkOrderNumber))
+            return 'WO Not recurring';
+
+        return 'WO Recurring';
     }
 
     private function get_estimate_deal_price($estimate)

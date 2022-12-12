@@ -161,6 +161,22 @@ class ServiceBridgeController
         return $response->Data;
     }
 
+    public function get_work_order($id)
+    {
+        $response = $this->client->request(
+            'GET',
+            sprintf('%s/WorkOrders/%s', $this->base_url, $id),
+            [
+                'query' => [
+                    'sessionKey' => $this->session_key
+                ]
+            ]
+        );
+
+        $response = json_decode($response->getBody()->getContents());
+        return $response->Data;
+    }
+
     public function get_contact($id)
     {
         $response = $this->client->request(

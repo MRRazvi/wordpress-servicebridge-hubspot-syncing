@@ -28,6 +28,7 @@ class HubSpotController
     {
         $filter = new ContactFilter();
         $filter->setOperator('EQ')->setPropertyName('email')->setValue($email);
+        $filter->setOperator('CONTAINS_TOKEN')->setPropertyName('hs_additional_emails')->setValue($email);
         $filterGroup = new ContactFilterGroup();
         $filterGroup->setFilters([$filter]);
         $searchRequest = new ContactPublicObjectSearchRequest();
