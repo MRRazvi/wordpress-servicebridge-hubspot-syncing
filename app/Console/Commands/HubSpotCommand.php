@@ -17,6 +17,17 @@ class HubSpotCommand extends Command
     public function handle()
     {
         $hs = new HubSpotController(env('HUBSPOT_API_KEY'));
+        // $deal = $hs->get_deal(11317921395);
+        $deal = $hs->create_deal([
+            // 'associatedvids' => '4090301',
+            'dealname' => 'deal name test',
+            'pipeline' => 'default',
+            'amount' => '123',
+            'dealtype' => 'newbusiness',
+            // 'kilde' => 'marketing'
+        ]);
+        dd($deal);
+
         $sb_accounts = $this->get_sb_accounts();
 
         $this->sync_estimates($hs, $sb_accounts);
