@@ -4,21 +4,24 @@ namespace App\Http\Controllers;
 
 use \HubSpot\Factory;
 use \HubSpot\Client\Crm\Contacts\Model\Filter as ContactFilter;
-use \HubSpot\Client\Crm\Deals\Model\Filter as DealFilter;
 use \HubSpot\Client\Crm\Contacts\Model\FilterGroup as ContactFilterGroup;
-use \HubSpot\Client\Crm\Deals\Model\FilterGroup as DealFilterGroup;
 use \HubSpot\Client\Crm\Contacts\Model\PublicObjectSearchRequest as ContactPublicObjectSearchRequest;
-use \HubSpot\Client\Crm\Deals\Model\PublicObjectSearchRequest as DealPublicObjectSearchRequest;
 use \HubSpot\Client\Crm\Contacts\Model\SimplePublicObjectInput as ContactInput;
-use \HubSpot\Client\Crm\Deals\Model\SimplePublicObjectInput as DealInput;
+use Illuminate\Support\Facades\Http;
 
 class HubSpotController
 {
     private $client;
 
+    private $base_url;
+
+    private $api_key;
+
     public function __construct($api_key)
     {
         $this->client = Factory::createWithDeveloperApiKey($api_key);
+        $this->base_url = 'https://api.hubapi.com/deals/v1';
+        $this->api_key = $api_key;
     }
 
     public function get_contact($email)
@@ -59,15 +62,46 @@ class HubSpotController
 
     public function get_deal($id)
     {
-        $deal = $this->client->crm()->deals()->basicApi()->getById($id);
-
-        return $deal;
+        return $this->client->crm()->deals()->basicApi()->getById($id);
     }
 
-    public function create_deal($data)
+    public function create_deal($user_id, $data)
     {
-        $dealInput = new DealInput();
-        $dealInput->setProperties($data);
-        return $this->client->crm()->deals()->basicApi()->create($dealInput);
+        $response = Http::post(
+            sprintf('%s/deal?hapikey=%s', $this->base_url, $this->api_key),
+            [
+                'associations' => [
+                    'associatedVids' => $user_id
+                ],
+                'properties' => [
+                    [
+                        'name' => 'dealname',
+                        'value' => $data['dealname']
+                    ],
+                    [
+                        'name' => 'amount',
+                        'value' => $data['amount']
+                    ],
+                    [
+                        'name' => 'pipeline',
+                        'value' => $data['pipeline']
+                    ],
+                    [
+                        'name' => 'dealtype',
+                        'value' => $data['dealtype']
+                    ],
+                    [
+                        'name' => 'dealstage',
+                        'value' => $data['dealstage']
+                    ],
+                    [
+                        'name' => 'closedate',
+                        'value' => $data['closedate']
+                    ]
+                ]
+            ]
+        );
+
+        return $response->json();
     }
 }

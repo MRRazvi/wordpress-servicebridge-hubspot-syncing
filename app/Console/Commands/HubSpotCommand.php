@@ -17,17 +17,6 @@ class HubSpotCommand extends Command
     public function handle()
     {
         $hs = new HubSpotController(env('HUBSPOT_API_KEY'));
-        // $deal = $hs->get_deal(11317921395);
-        $deal = $hs->create_deal([
-            // 'associatedvids' => '4090301',
-            'dealname' => 'deal name test',
-            'pipeline' => 'default',
-            'amount' => '123',
-            'dealtype' => 'newbusiness',
-            // 'kilde' => 'marketing'
-        ]);
-        dd($deal);
-
         $sb_accounts = $this->get_sb_accounts();
 
         $this->sync_estimates($hs, $sb_accounts);
@@ -41,6 +30,8 @@ class HubSpotCommand extends Command
             $sb = $sb_accounts[$estimate->sb_account_id];
             $data = $sb->get_estimate($estimate->estimate_id);
 
+            $this->get_estimate_deal_price($data);
+
             // no need of not finished statuses
             if ($data->Status != 'Finished' && $data->Status != 'WonEstimate' && $data->Status != 'LostEstimate') {
                 $estimate->synced = true;
@@ -51,29 +42,40 @@ class HubSpotCommand extends Command
             $hs_contact = $hs->get_contact($data->Contact->Email);
             if ($hs_contact) {
                 // update contact on hubspot
-                dump("has contact");
+                dump("has contact", $estimate->estimate_id);
             } else {
-                dump("create contact");
-                continue;
-                // create contact if not exist on hubspot
+                // create contact with deal if not exist on hubspot
                 $sb_customer = $sb->get_customer($data->Customer->Id);
+                $sb_customer_contact = $sb_customer->DefaultServiceLocation->PrimaryContact;
+                $sb_customer_location = $sb_customer->DefaultServiceLocation;
+
                 $hs_contact = $hs->create_contact([
-                    'firstname' => $sb_customer->DefaultServiceLocation->PrimaryContact->FirstName,
-                    'lastname' => $sb_customer->DefaultServiceLocation->PrimaryContact->LastName,
-                    'email' => $sb_customer->DefaultServiceLocation->PrimaryContact->Email,
-                    'phone' => $sb_customer->DefaultServiceLocation->PrimaryContact->CellPhoneNumber ?? $sb_customer->DefaultServiceLocation->PrimaryContact->PhoneNumber ?? '',
-                    'address' => $sb_customer->DefaultServiceLocation->AddressLine1,
-                    'city' => $sb_customer->DefaultServiceLocation->City,
-                    'zip' => $sb_customer->DefaultServiceLocation->PostalCode,
+                    'firstname' => $sb_customer_contact->FirstName,
+                    'lastname' => $sb_customer_contact->LastName,
+                    'email' => $sb_customer_contact->Email,
+                    'phone' => $sb_customer_contact->CellPhoneNumber ?? $sb_customer_contact->PhoneNumber ?? '',
+                    'address' => $sb_customer_location->AddressLine1,
+                    'city' => $sb_customer_location->City,
+                    'zip' => $sb_customer_location->PostalCode,
                     'lifecyclestage' => count($data->EstimateLines ?? []) > 0 ? 'customer' : 'opportunity',
                     'status_from_sb' => $this->get_status_of_estimate_for_hs($data),
-                    'notat_om_aktivitet_i_service_bridge' => sprintf('%s - %s - %s', $data->EstimateNumber, $sb_customer->DefaultServiceLocation->AddressLine1, $data->Description),
+                    'notat_om_aktivitet_i_service_bridge' => sprintf('%s - %s - %s', $data->EstimateNumber, $sb_customer_location->AddressLine1, $data->Description),
                     'company' => $sb_customer->CompanyName ?? ''
                 ]);
 
-                $hs_contact_id = $hs_contact['id'];
+                if (isset($data->EstimateLines)) {
+                    $hs->create_deal($hs_contact['id'], [
+                        'dealname' => sprintf('%s - %s - %s', $data->EstimateNumber, $sb_customer_location->AddressLine1, $data->Description),
+                        'amount' => $this->get_estimate_deal_price($data),
+                        'pipeline' => 'default',
+                        'dealtype' => 'newbusiness',
+                        'dealstage' => 'contractsent',
+                        'closedate' => now()->addMonth()->valueOf()
+                    ]);
+                }
 
-                dd($hs_contact_id);
+                $estimate->synced = true;
+                $estimate->save();
             }
         }
     }
@@ -121,6 +123,7 @@ class HubSpotCommand extends Command
             return 0;
 
         $total += 25 * $total / 100; // 25% tax
-        return printf("%.2f", $total);
+
+        return sprintf("%.2f", $total);
     }
 }
