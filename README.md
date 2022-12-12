@@ -18,6 +18,7 @@ composer install
 php artisan migrate:fresh
 php sb:accounts
 php sb:database
+php hs:sync
 ```
 
 ### Author
