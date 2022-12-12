@@ -50,8 +50,6 @@ class HubSpotController
     {
         $contactInput = new SimplePublicObjectInput();
         $contactInput->setProperties($data);
-        $contact = $this->client->crm()->contacts()->basicApi()->create($contactInput);
-
-        dd($contact);
+        return $this->client->crm()->contacts()->basicApi()->create($contactInput);
     }
 }

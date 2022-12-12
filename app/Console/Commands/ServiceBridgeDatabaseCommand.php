@@ -20,8 +20,8 @@ class ServiceBridgeDatabaseCommand extends Command
 
         foreach ($service_bridge_accounts as $service_bridge_account) {
             $client = new ServiceBridgeController(
-                $service_bridge_account->user_id,
-                $service_bridge_account->user_pass
+                    $service_bridge_account->user_id,
+                    $service_bridge_account->user_pass
             );
 
             $client->login();
