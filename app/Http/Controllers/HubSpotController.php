@@ -7,6 +7,7 @@ use \HubSpot\Client\Crm\Contacts\Model\Filter as ContactFilter;
 use \HubSpot\Client\Crm\Contacts\Model\FilterGroup as ContactFilterGroup;
 use \HubSpot\Client\Crm\Contacts\Model\PublicObjectSearchRequest as ContactPublicObjectSearchRequest;
 use \HubSpot\Client\Crm\Contacts\Model\SimplePublicObjectInput as ContactInput;
+use HubSpot\Client\Crm\Contacts\Model\SimplePublicObjectInput as ContactSimplePublicObjectInput;
 use Illuminate\Support\Facades\Http;
 
 class HubSpotController
@@ -27,8 +28,10 @@ class HubSpotController
     public function get_contact($email)
     {
         $filter = new ContactFilter();
-        $filter->setOperator('EQ')->setPropertyName('email')->setValue($email);
-        $filter->setOperator('CONTAINS_TOKEN')->setPropertyName('hs_additional_emails')->setValue($email);
+        $filter
+            ->setOperator('EQ')
+            ->setPropertyName('email')
+            ->setValue($email);
         $filterGroup = new ContactFilterGroup();
         $filterGroup->setFilters([$filter]);
         $searchRequest = new ContactPublicObjectSearchRequest();
@@ -58,7 +61,17 @@ class HubSpotController
     {
         $contactInput = new ContactInput();
         $contactInput->setProperties($data);
+
         return $this->client->crm()->contacts()->basicApi()->create($contactInput);
+    }
+
+    public function update_contact($contact_id, $data)
+    {
+        $data = new ContactSimplePublicObjectInput([
+            'properties' => $data
+        ]);
+
+        return $this->client->crm()->contacts()->basicApi()->update($contact_id, $data);
     }
 
     public function get_deal($id)

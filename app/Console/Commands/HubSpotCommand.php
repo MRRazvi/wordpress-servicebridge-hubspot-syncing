@@ -20,7 +20,7 @@ class HubSpotCommand extends Command
         $hs = new HubSpotController(env('HUBSPOT_API_KEY'));
         $sb_accounts = $this->get_sb_accounts();
 
-        // $this->sync_estimates($hs, $sb_accounts);
+        $this->sync_estimates($hs, $sb_accounts);
         $this->sync_work_orders($hs, $sb_accounts);
     }
 
@@ -28,29 +28,25 @@ class HubSpotCommand extends Command
     {
         $estimates = Estimate::where('synced', false)->get();
         foreach ($estimates as $estimate) {
-            $sb = $sb_accounts[$estimate->sb_account_id];
-            $data = $sb->get_estimate($estimate->estimate_id);
+            try {
+                $sb = $sb_accounts[$estimate->sb_account_id];
+                $data = $sb->get_estimate($estimate->estimate_id);
 
-            $this->get_estimate_deal_price($data);
+                $this->get_estimate_deal_price($data);
 
-            // no need of not finished statuses
-            if ($data->Status != 'Finished' && $data->Status != 'WonEstimate' && $data->Status != 'LostEstimate') {
-                $estimate->synced = true;
-                $estimate->save();
-                continue;
-            }
+                // no need of not finished statuses
+                if ($data->Status != 'Finished' && $data->Status != 'WonEstimate' && $data->Status != 'LostEstimate') {
+                    $estimate->synced = true;
+                    $estimate->save();
+                    continue;
+                }
 
-            $hs_contact = $hs->get_contact($data->Contact->Email);
-            if ($hs_contact) {
-                // update contact on hubspot
-                dump("has contact", $estimate->estimate_id);
-            } else {
-                // create contact with deal if not exist on hubspot
+                $hs_contact = $hs->get_contact($data->Contact->Email);
                 $sb_customer = $sb->get_customer($data->Customer->Id);
                 $sb_customer_contact = $sb_customer->DefaultServiceLocation->PrimaryContact;
                 $sb_customer_location = $sb_customer->DefaultServiceLocation;
 
-                $hs_contact = $hs->create_contact([
+                $input = [
                     'firstname' => $sb_customer_contact->FirstName,
                     'lastname' => $sb_customer_contact->LastName,
                     'email' => $sb_customer_contact->Email,
@@ -62,21 +58,31 @@ class HubSpotCommand extends Command
                     'status_from_sb' => $this->get_status_of_estimate_for_hs($data),
                     'notat_om_aktivitet_i_service_bridge' => sprintf('%s - %s - %s', $data->EstimateNumber, $sb_customer_location->AddressLine1, $data->Description),
                     'company' => $sb_customer->CompanyName ?? ''
-                ]);
+                ];
 
-                if (isset($data->EstimateLines)) {
-                    $hs->create_deal($hs_contact['id'], [
-                        'dealname' => sprintf('%s - %s - %s', $data->EstimateNumber, $sb_customer_location->AddressLine1, $data->Description),
-                        'amount' => $this->get_estimate_deal_price($data),
-                        'pipeline' => 'default',
-                        'dealtype' => 'newbusiness',
-                        'dealstage' => 'contractsent',
-                        'closedate' => now()->addMonth()->valueOf()
-                    ]);
+                if ($hs_contact) {
+                    dump("update contact", $estimate->estimate_id);
+                    $hs_contact = $hs->update_contact($hs_contact['id'], $input);
+                } else {
+                    dump("creatge contact", $estimate->estimate_id);
+                    $hs_contact = $hs->create_contact($input);
+
+                    if (isset($data->EstimateLines)) {
+                        $hs->create_deal($hs_contact['id'], [
+                            'dealname' => sprintf('%s - %s - %s', $data->EstimateNumber, $sb_customer_location->AddressLine1, $data->Description),
+                            'amount' => $this->get_estimate_deal_price($data),
+                            'pipeline' => 'default',
+                            'dealtype' => 'newbusiness',
+                            'dealstage' => 'contractsent',
+                            'closedate' => now()->addMonth()->valueOf()
+                        ]);
+                    }
                 }
 
                 $estimate->synced = true;
                 $estimate->save();
+            } catch (\Exception $e) {
+                dump("error: " . $e->getMessage());
             }
         }
     }
@@ -85,26 +91,23 @@ class HubSpotCommand extends Command
     {
         $work_orders = WorkOrder::where('synced', false)->get();
         foreach ($work_orders as $work_order) {
-            $sb = $sb_accounts[$work_order->sb_account_id];
-            $data = $sb->get_work_order($work_order->work_order_id);
+            try {
+                $sb = $sb_accounts[$work_order->sb_account_id];
+                $data = $sb->get_work_order($work_order->work_order_id);
 
-            // only completed work orders need to be sync
-            if ($data->Status != 'Completed') {
-                $work_order->synced = true;
-                $work_order->save();
-                continue;
-            }
+                // only completed work orders need to be sync
+                if ($data->Status != 'Completed') {
+                    $work_order->synced = true;
+                    $work_order->save();
+                    continue;
+                }
 
-            $hs_contact = $hs->get_contact($data->Contact->Email);
-            if ($hs_contact) {
-                // update contact on hubspot
-                dump("has contact", $work_order->work_order_id);
-            } else {
+                $hs_contact = $hs->get_contact($data->Contact->Email);
                 $sb_work_order = $sb->get_customer($data->Customer->Id);
                 $sb_work_order_contact = $sb_work_order->DefaultServiceLocation->PrimaryContact;
                 $sb_work_order_location = $sb_work_order->DefaultServiceLocation;
 
-                $hs_contact = $hs->create_contact([
+                $input = [
                     'firstname' => $sb_work_order_contact->FirstName,
                     'lastname' => $sb_work_order_contact->LastName,
                     'email' => $sb_work_order_contact->Email,
@@ -116,12 +119,24 @@ class HubSpotCommand extends Command
                     'status_from_sb' => $this->get_status_of_work_order_for_hs($data),
                     'notat_om_aktivitet_i_service_bridge' => sprintf('%s - %s - %s', $data->WorkOrderNumber, $sb_work_order_location->AddressLine1, $data->Description),
                     'company' => $sb_work_order->CompanyName ?? ''
-                ]);
+                ];
+
+                if ($hs_contact) {
+                    dump("update contact", $work_order->work_order_id);
+                    $hs->update_contact($hs_contact['id'], $input);
+                } else {
+                    dump("create contact", $work_order->work_order_id);
+                    $hs->create_contact($input);
+                }
 
                 $work_order->synced = true;
                 $work_order->save();
+            } catch (\Exception $e) {
+                dump('error: ' . $e->getMessage());
             }
         }
+
+        dump("all work orders synced successfully");
     }
 
     private function get_sb_accounts()
