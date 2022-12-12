@@ -145,6 +145,22 @@ class ServiceBridgeController
         return $response->TotalCount;
     }
 
+    public function get_estimate($id)
+    {
+        $response = $this->client->request(
+            'GET',
+            sprintf('%s/Estimates/%s', $this->base_url, $id),
+            [
+                'query' => [
+                    'sessionKey' => $this->session_key
+                ]
+            ]
+        );
+
+        $response = json_decode($response->getBody()->getContents());
+        return $response->Data;
+    }
+
     public function get_contact($id)
     {
         $response = $this->client->request(
@@ -168,7 +184,8 @@ class ServiceBridgeController
             sprintf('%s/Customers/%s', $this->base_url, $id),
             [
                 'query' => [
-                    'sessionKey' => $this->session_key
+                    'sessionKey' => $this->session_key,
+                    'includeCustomFields' => true
                 ]
             ]
         );
