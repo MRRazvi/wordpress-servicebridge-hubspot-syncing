@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Estimate;
 use GuzzleHttp\Client;
 use GuzzleHttp\Promise;
 use Illuminate\Support\Facades\Log;
@@ -63,6 +64,8 @@ class ServiceBridgeController
 
             foreach ($statues as $status) {
                 for ($i = 1; $i <= $this->get_estimates_count($status) / 500; $i++) {
+                    dump(sprintf("starting: %s - %s", $i, $status));
+
                     $estimates[] = $this->client->requestAsync(
                         'GET',
                         sprintf('%s/Estimates', $this->base_url),
@@ -76,9 +79,45 @@ class ServiceBridgeController
                                 'statusFilter' => $status
                             ]
                         ]
-                    )->then(function ($response) use ($i) {
+                    )->then(function ($response) use ($i, $status) {
+                        dump(sprintf("reaching: %s - %s", $i, $status));
+
                         $response = json_decode($response->getBody()->getContents());
-                        return $response->Data;
+                        $estimates = $response->Data;
+
+                        foreach ($estimates as $estimate) {
+                            $e = Estimate::where('estimate_id', $estimate->Id)->count();
+
+                            if ($e) {
+                                $e = Estimate::where([
+                                    'estimate_id' => $estimate->Id,
+                                    'version' => $estimate->Metadata->Version
+                                ])->count();
+
+                                if ($e == 0) {
+                                    Estimate::where('estimate_id', $estimate->Id)
+                                        ->update([
+                                            'status' => $estimate->Status,
+                                            'version' => $estimate->Metadata->Version,
+                                            'synced' => false,
+                                            'created_at' => $estimate->Metadata->CreatedOn,
+                                            'updated_at' => $estimate->Metadata->UpdatedOn
+                                        ]);
+                                }
+                            } else {
+                                Estimate::create([
+                                    'estimate_id' => $estimate->Id,
+                                    'sb_account_id' => 1,
+                                    'status' => $estimate->Status,
+                                    'version' => $estimate->Metadata->Version,
+                                    'synced' => false,
+                                    'created_at' => $estimate->Metadata->CreatedOn,
+                                    'updated_at' => $estimate->Metadata->UpdatedOn
+                                ]);
+                            }
+                        }
+
+                        return $response->TotalCount;
                     });
                 }
             }
@@ -86,6 +125,8 @@ class ServiceBridgeController
             $estimates = Promise\Utils::settle(
                 Promise\Utils::unwrap($estimates),
             )->wait();
+
+            dd($estimates);
 
             return $estimates;
         } catch (\Exception $e) {

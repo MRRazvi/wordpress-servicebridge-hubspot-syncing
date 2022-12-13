@@ -9,7 +9,7 @@ use App\Models\ServiceBridgeAccount;
 use App\Models\WorkOrder;
 use Illuminate\Console\Command;
 
-class HubSpotCommandSync extends Command
+class HubSpotSyncCommand extends Command
 {
     protected $signature = 'hs:sync';
 
@@ -21,7 +21,7 @@ class HubSpotCommandSync extends Command
         $sb_accounts = $this->get_sb_accounts();
 
         $this->sync_estimates($hs, $sb_accounts);
-        $this->sync_work_orders($hs, $sb_accounts);
+        // $this->sync_work_orders($hs, $sb_accounts);
     }
 
     private function sync_estimates($hs, $sb_accounts)
