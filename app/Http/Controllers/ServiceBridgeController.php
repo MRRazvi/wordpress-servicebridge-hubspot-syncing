@@ -75,8 +75,6 @@ class ServiceBridgeController
             Promise\Utils::unwrap($estimates),
         )->wait();
 
-        dd($estimates);
-
         return $estimates;
     }
 
@@ -115,7 +113,8 @@ class ServiceBridgeController
                         'sessionKey' => $this->session_key,
                         'page' => $i,
                         'pageSize' => (env('APP_ENV') == 'local') ? 5 : 500,
-                        'includeInactiveCustomers' => true
+                        'includeInactiveCustomers' => true,
+                        'statusFilter' => 'Completed'
                     ]
                 ]
             )->then(function ($response) use ($i) {
@@ -143,7 +142,8 @@ class ServiceBridgeController
                 'query' => [
                     'sessionKey' => $this->session_key,
                     'page' => 1,
-                    'pageSize' => 1
+                    'pageSize' => 1,
+                    'statusFilter' => 'Completed'
                 ]
             ]
         );
