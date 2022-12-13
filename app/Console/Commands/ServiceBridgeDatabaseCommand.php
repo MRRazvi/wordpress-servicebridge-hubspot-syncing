@@ -44,7 +44,6 @@ class ServiceBridgeDatabaseCommand extends Command
                                     'status' => $estimate->Status,
                                     'version' => $estimate->Metadata->Version,
                                     'synced' => false,
-                                    'blob' => json_encode($estimate),
                                     'created_at' => $estimate->Metadata->CreatedOn,
                                     'updated_at' => $estimate->Metadata->UpdatedOn
                                 ]);
@@ -56,7 +55,6 @@ class ServiceBridgeDatabaseCommand extends Command
                             'status' => $estimate->Status,
                             'version' => $estimate->Metadata->Version,
                             'synced' => false,
-                            'blob' => json_encode($estimate),
                             'created_at' => $estimate->Metadata->CreatedOn,
                             'updated_at' => $estimate->Metadata->UpdatedOn
                         ]);
@@ -80,7 +78,6 @@ class ServiceBridgeDatabaseCommand extends Command
                                     'status' => $work_order->Status,
                                     'version' => $work_order->Metadata->Version,
                                     'synced' => false,
-                                    'blob' => json_encode($work_order),
                                     'created_at' => $work_order->Metadata->CreatedOn,
                                     'updated_at' => $work_order->Metadata->UpdatedOn
                                 ]);
@@ -92,7 +89,6 @@ class ServiceBridgeDatabaseCommand extends Command
                             'status' => $work_order->Status,
                             'version' => $work_order->Metadata->Version,
                             'synced' => false,
-                            'blob' => json_encode($work_order),
                             'created_at' => $work_order->Metadata->CreatedOn,
                             'updated_at' => $work_order->Metadata->UpdatedOn
                         ]);
