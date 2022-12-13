@@ -47,34 +47,40 @@ class ServiceBridgeController
     public function get_estimates()
     {
         $estimates = [];
+        $statues = ['Finished', 'WonEstimate', 'LostEstimate'];
 
-        for ($i = 1; $i <= $this->get_estimates_count() / 500; $i++) {
-            $estimates[] = $this->client->requestAsync(
-                'GET',
-                sprintf('%s/Estimates', $this->base_url),
-                [
-                    'query' => [
-                        'sessionKey' => $this->session_key,
-                        'page' => $i,
-                        'pageSize' => (env('APP_ENV') == 'local') ? 5 : 500,
-                        'includeInactiveCustomers' => true,
-                        'includeInventoryInfo' => true
+        foreach ($statues as $status) {
+            for ($i = 1; $i <= $this->get_estimates_count($status) / 500; $i++) {
+                $estimates[] = $this->client->requestAsync(
+                    'GET',
+                    sprintf('%s/Estimates', $this->base_url),
+                    [
+                        'query' => [
+                            'sessionKey' => $this->session_key,
+                            'page' => $i,
+                            'pageSize' => (env('APP_ENV') == 'local') ? 5 : 500,
+                            'includeInactiveCustomers' => true,
+                            'includeInventoryInfo' => true,
+                            'statusFilter' => $status
+                        ]
                     ]
-                ]
-            )->then(function ($response) use ($i) {
-                $response = json_decode($response->getBody()->getContents());
-                return $response->Data;
-            });
+                )->then(function ($response) use ($i) {
+                    $response = json_decode($response->getBody()->getContents());
+                    return $response->Data;
+                });
+            }
         }
 
         $estimates = Promise\Utils::settle(
             Promise\Utils::unwrap($estimates),
         )->wait();
 
+        dd($estimates);
+
         return $estimates;
     }
 
-    public function get_estimates_count()
+    public function get_estimates_count($status)
     {
         if (env('APP_ENV') == 'local')
             return 500;
@@ -86,7 +92,8 @@ class ServiceBridgeController
                 'query' => [
                     'sessionKey' => $this->session_key,
                     'page' => 1,
-                    'pageSize' => 1
+                    'pageSize' => 1,
+                    'statusFilter' => $status
                 ]
             ]
         );
