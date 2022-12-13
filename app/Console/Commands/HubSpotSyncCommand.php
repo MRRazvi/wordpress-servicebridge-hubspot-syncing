@@ -9,7 +9,7 @@ use App\Models\ServiceBridgeAccount;
 use App\Models\WorkOrder;
 use Illuminate\Console\Command;
 
-class HubSpotCommand extends Command
+class HubSpotCommandSync extends Command
 {
     protected $signature = 'hs:sync';
 

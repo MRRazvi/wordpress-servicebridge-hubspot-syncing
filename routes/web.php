@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
+    // Log::channel('sb-client')->info('Something happened!');
     Artisan::call('sb:database');
     // Artisan::call('hs:sync');
 });

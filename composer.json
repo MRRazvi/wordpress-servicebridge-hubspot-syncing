@@ -11,6 +11,7 @@
         "hubspot/hubspot-php": "^5.0",
         "laravel/framework": "^9.19",
         "laravel/sanctum": "^3.0",
+        "laravel/telescope": "^4.10",
         "laravel/tinker": "^2.7"
     },
     "require-dev": {
@@ -52,7 +53,9 @@
     },
     "extra": {
         "laravel": {
-            "dont-discover": []
+            "dont-discover": [
+                "laravel/telescope"
+            ]
         }
     },
     "config": {
