@@ -14,7 +14,6 @@ return new class extends Migration {
             $table->string('status');
             $table->integer('version')->nullable();
             $table->boolean('synced')->default(false);
-            $table->json('blob');
             $table->timestamps();
         });
     }
