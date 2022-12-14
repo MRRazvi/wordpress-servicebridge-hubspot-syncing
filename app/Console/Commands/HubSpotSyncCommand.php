@@ -80,7 +80,7 @@ class HubSpotSyncCommand extends Command
                                     'dealname' => $deal_name,
                                     'amount' => $this->get_estimate_deal_price($data),
                                     'dealstage' => $this->get_deal_stage($data->Status),
-                                    // 'kilde' => $data->MarketingCampaign->Id
+                                    'kilde' => $this->get_marketing_campaign($data->MarketingCampaign->Name)
                                 ]
                             );
                         } else {
@@ -92,7 +92,7 @@ class HubSpotSyncCommand extends Command
                                     'pipeline' => 'default',
                                     'dealtype' => 'newbusiness',
                                     'closedate' => now()->addDays(14)->valueOf(),
-                                    // 'kilde' => $data->MarketingCampaign->Id
+                                    'kilde' => $this->get_marketing_campaign($data->MarketingCampaign->Name)
                                 ]);
                             }
                         }
@@ -248,5 +248,26 @@ class HubSpotSyncCommand extends Command
         $total += 25 * $total / 100; // 25% tax
 
         return sprintf("%.2f", $total);
+    }
+
+    private function get_marketing_campaign($campaign)
+    {
+        $campaigns = [
+            'Møtebooking Activo',
+            'Anbefalt',
+            'Facebook',
+            'Google',
+            'Instagram',
+            'Jeg tar selv æren for denne',
+            'Linkedin',
+            'Møtebooking',
+            'Møtebooking Citero'
+        ];
+
+        if (!in_array($campaign, $campaigns)) {
+            return '';
+        }
+
+        return $campaign;
     }
 }
