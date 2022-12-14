@@ -17,89 +17,43 @@ class HubSpotController
 {
     private $client;
 
-    private $base_url;
-
-    private $api_key;
-
     public function __construct($api_key)
     {
-        $this->client = Factory::createWithDeveloperApiKey($api_key);
-        $this->base_url = 'https://api.hubapi.com/deals/v1';
-        $this->api_key = $api_key;
+        $this->client = LegacyFactory::create($api_key);
     }
 
     public function get_contact($email)
     {
         try {
-            $filter = new ContactFilter();
-            $filter->setOperator('EQ')->setPropertyName('email')->setValue($email);
-            $filterGroup = new ContactFilterGroup();
-            $filterGroup->setFilters([$filter]);
-            $searchRequest = new ContactPublicObjectSearchRequest();
-            $searchRequest->setFilterGroups([$filterGroup]);
-            $searchRequest->setProperties([
-                'firstname',
-                'lastname',
-                'email',
-                'phone',
-                'address',
-                'zip',
-                'city',
-                'lifecyclestage',
-                'status_from_sb',
-                'notat_om_aktivitet_i_service_bridge'
+            $contacts = $this->client->contacts()->search($email);
+            return $contacts->contacts[0]->vid ?? false;
+        } catch (\Exception $e) {
+            Log::channel('hs-sync')->error('get_contact', [
+                'code' => $e->getCode(),
+                'file' => $e->getFile(),
+                'message' => $e->getMessage()
             ]);
-            $contactsPage = $this->client->crm()->contacts()->searchApi()->doSearch($searchRequest);
+        }
+    }
 
-            if ($contactsPage['total'] < 1) {
-                return false;
+    public function create_update_contact($email, $data)
+    {
+        try {
+            $input = [];
+            foreach($data as $key => $value) {
+                $input[] = [
+                    'property' => $key,
+                    'value' => $value
+                ];
             }
 
-            return $contactsPage['results'][0];
-        } catch (\Exception $e) {
-            Log::channel('hs-client')->error('get_contact', [
-                'code' => $e->getCode(),
-                'file' => $e->getFile(),
-                'line' => $e->getLine(),
-                'message' => $e->getMessage(),
-                'trace' => $e->getTrace()
-            ]);
-        }
-    }
-
-    public function create_contact($data)
-    {
-        try {
-            $contactInput = new ContactInput();
-            $contactInput->setProperties($data);
-
-            return $this->client->crm()->contacts()->basicApi()->create($contactInput);
+            $contact = $this->client->contacts()->createOrUpdate($email, $input);
+            return $contact->vid ?? false;
         } catch(\Exception $e) {
-            Log::channel('hs-client')->error('get_contact', [
+            Log::channel('hs-sync')->error('create_update_contact', [
                 'code' => $e->getCode(),
                 'file' => $e->getFile(),
-                'line' => $e->getLine(),
-                'message' => $e->getMessage(),
-                'trace' => $e->getTrace()
-            ]);
-        }
-    }
-
-    public function update_contact($contact_id, $data)
-    {
-        try {
-            $data = new ContactSimplePublicObjectInput([
-                'properties' => $data
-            ]);
-
-            return $this->client->crm()->contacts()->basicApi()->update($contact_id, $data);
-        } catch(\Exception $e) {
-            Log::channel('hs-client')->error('update_contact', [
-                'code' => $e->getCode(),
-                'file' => $e->getFile(),
-                'line' => $e->getLine(),
-                'message' => $e->getMessage(),
-                'trace' => $e->getTrace()
+                'message' => $e->getMessage()
             ]);
         }
     }
@@ -107,91 +61,42 @@ class HubSpotController
     public function search_deal($contact_id)
     {
         try {
-            $hs = LegacyFactory::create($this->api_key);
-            $deals = $hs->deals()->associatedWithContact($contact_id, [
+            $deals = $this->client->deals()->associatedWithContact($contact_id, [
                 'properties' => [
                     'dealname',
                     'amount'
                 ]
             ]);
 
-            if ($deals->deals) {
-                return $deals->deals[0];
+            return $deals->deals[0] ?? false;
+        } catch(\Exception $e) {
+            Log::channel('hs-sync')->error('search_deal', [
+                'code' => $e->getCode(),
+                'file' => $e->getFile(),
+                'message' => $e->getMessage()
+            ]);
+        }
+    }
+
+    public function create_deal($contact_id, $data)
+    {
+        try {
+            $input = [];
+            foreach($data as $key => $value) {
+                $input[] = [
+                    'name' => $key,
+                    'value' => $value
+                ];
             }
 
-            return [];
-        } catch(\Exception $e) {
-            Log::channel('hs-client')->error('search_deal', [
-                'code' => $e->getCode(),
-                'file' => $e->getFile(),
-                'line' => $e->getLine(),
-                'message' => $e->getMessage(),
-                'trace' => $e->getTrace()
-            ]);
-        }
-    }
-
-    public function get_deal($id)
-    {
-        try {
-            return $this->client->crm()->deals()->basicApi()->getById($id);
-        } catch(\Exception $e) {
-            Log::channel('hs-client')->error('get_deal', [
-                'code' => $e->getCode(),
-                'file' => $e->getFile(),
-                'line' => $e->getLine(),
-                'message' => $e->getMessage(),
-                'trace' => $e->getTrace()
-            ]);
-        }
-    }
-
-    public function create_deal($user_id, $data)
-    {
-        try {
-            $response = Http::post(
-                sprintf('%s/deal?hapikey=%s', $this->base_url, $this->api_key),
-                [
-                    'associations' => [
-                        'associatedVids' => $user_id
-                    ],
-                    'properties' => [
-                        [
-                            'name' => 'dealname',
-                            'value' => $data['dealname']
-                        ],
-                        [
-                            'name' => 'amount',
-                            'value' => $data['amount']
-                        ],
-                        [
-                            'name' => 'pipeline',
-                            'value' => $data['pipeline']
-                        ],
-                        [
-                            'name' => 'dealtype',
-                            'value' => $data['dealtype']
-                        ],
-                        [
-                            'name' => 'dealstage',
-                            'value' => $data['dealstage']
-                        ],
-                        [
-                            'name' => 'closedate',
-                            'value' => $data['closedate']
-                        ]
-                    ]
-                ]
-            );
-
-            return $response->json();
+            $deal = $this->client->deals()->create($input, ['associatedVids' => [$contact_id]]);
+            return $deal->dealId ?? false;
         } catch(\Exception $e) {
             Log::channel('hs-client')->error('create_deal', [
                 'code' => $e->getCode(),
                 'file' => $e->getFile(),
                 'line' => $e->getLine(),
-                'message' => $e->getMessage(),
-                'trace' => $e->getTrace()
+                'message' => $e->getMessage()
             ]);
         }
     }
@@ -199,18 +104,21 @@ class HubSpotController
     public function update_deal($deal_id, $data)
     {
         try {
-            $data = new DealSimplePublicObjectInput([
-                'properties' => $data
-            ]);
+            $input = [];
+            foreach($data as $key => $value) {
+                $input[] = [
+                    'name' => $key,
+                    'value' => $value
+                ];
+            }
 
-            return $this->client->crm()->deals()->basicApi()->update($deal_id, $data);
+            $deal = $this->client->deals()->update($deal_id, $input);
+            return $deal->dealId ?? false;
         } catch(\Exception $e) {
-            Log::channel('hs-client')->error('update_deal', [
+            Log::channel('hs-sync')->error('update_deal', [
                 'code' => $e->getCode(),
                 'file' => $e->getFile(),
-                'line' => $e->getLine(),
-                'message' => $e->getMessage(),
-                'trace' => $e->getTrace()
+                'message' => $e->getMessage()
             ]);
         }
     }

@@ -308,7 +308,7 @@ class ServiceBridgeController
             $response = json_decode($response->getBody()->getContents());
             return $response->Data;
         } catch (\Exception $e) {
-            Log::channel('sb-client')->error('get_estimate', [
+            Log::channel('hs-sync')->error('get_estimate', [
                 'code' => $e->getCode(),
                 'file' => $e->getFile(),
                 'line' => $e->getLine(),
@@ -344,32 +344,6 @@ class ServiceBridgeController
         }
     }
 
-    public function get_contact($id)
-    {
-        try {
-            $response = $this->client->request(
-                'GET',
-                sprintf('%s/Contacts/%s', $this->base_url, $id),
-                [
-                    'query' => [
-                        'sessionKey' => $this->session_key
-                    ]
-                ]
-            );
-
-            $response = json_decode($response->getBody()->getContents());
-            return $response->Data;
-        } catch (\Exception $e) {
-            Log::channel('sb-client')->error('get_contact', [
-                'code' => $e->getCode(),
-                'file' => $e->getFile(),
-                'line' => $e->getLine(),
-                'message' => $e->getMessage(),
-                'trace' => $e->getTrace()
-            ]);
-        }
-    }
-
     public function get_customer($id)
     {
         try {
@@ -387,33 +361,7 @@ class ServiceBridgeController
             $response = json_decode($response->getBody()->getContents());
             return $response->Data;
         } catch (\Exception $e) {
-            Log::channel('sb-client')->error('get_customer', [
-                'code' => $e->getCode(),
-                'file' => $e->getFile(),
-                'line' => $e->getLine(),
-                'message' => $e->getMessage(),
-                'trace' => $e->getTrace()
-            ]);
-        }
-    }
-
-    public function get_location($id)
-    {
-        try {
-            $response = $this->client->request(
-                'GET',
-                sprintf('%s/Locations/%s', $this->base_url, $id),
-                [
-                    'query' => [
-                        'sessionKey' => $this->session_key
-                    ]
-                ]
-            );
-
-            $response = json_decode($response->getBody()->getContents());
-            return $response->Data;
-        } catch (\Exception $e) {
-            Log::channel('sb-client')->error('get_location', [
+            Log::channel('hs-sync')->error('get_customer', [
                 'code' => $e->getCode(),
                 'file' => $e->getFile(),
                 'line' => $e->getLine(),
