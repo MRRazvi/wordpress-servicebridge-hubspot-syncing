@@ -2,16 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use \HubSpot\Factory;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use SevenShores\Hubspot\Factory as LegacyFactory;
-use \HubSpot\Client\Crm\Contacts\Model\Filter as ContactFilter;
-use \HubSpot\Client\Crm\Contacts\Model\FilterGroup as ContactFilterGroup;
-use \HubSpot\Client\Crm\Contacts\Model\SimplePublicObjectInput as ContactInput;
-use HubSpot\Client\Crm\Deals\Model\SimplePublicObjectInput as DealSimplePublicObjectInput;
-use HubSpot\Client\Crm\Contacts\Model\SimplePublicObjectInput as ContactSimplePublicObjectInput;
-use \HubSpot\Client\Crm\Contacts\Model\PublicObjectSearchRequest as ContactPublicObjectSearchRequest;
 
 class HubSpotController
 {
@@ -40,7 +32,7 @@ class HubSpotController
     {
         try {
             $input = [];
-            foreach($data as $key => $value) {
+            foreach ($data as $key => $value) {
                 $input[] = [
                     'property' => $key,
                     'value' => $value
@@ -48,11 +40,8 @@ class HubSpotController
             }
 
             $contact = $this->client->contacts()->createOrUpdate($email, $input);
-
-            dd($contact);
-
             return $contact->vid ?? false;
-        } catch(\Exception $e) {
+        } catch (\Exception $e) {
             Log::channel('hs-sync')->error('create_update_contact', [
                 'code' => $e->getCode(),
                 'file' => $e->getFile(),
@@ -72,7 +61,7 @@ class HubSpotController
             ]);
 
             return $deals->deals[0] ?? false;
-        } catch(\Exception $e) {
+        } catch (\Exception $e) {
             Log::channel('hs-sync')->error('search_deal', [
                 'code' => $e->getCode(),
                 'file' => $e->getFile(),
@@ -85,7 +74,7 @@ class HubSpotController
     {
         try {
             $input = [];
-            foreach($data as $key => $value) {
+            foreach ($data as $key => $value) {
                 $input[] = [
                     'name' => $key,
                     'value' => $value
@@ -94,7 +83,7 @@ class HubSpotController
 
             $deal = $this->client->deals()->create($input, ['associatedVids' => [$contact_id]]);
             return $deal->dealId ?? false;
-        } catch(\Exception $e) {
+        } catch (\Exception $e) {
             Log::channel('hs-client')->error('create_deal', [
                 'code' => $e->getCode(),
                 'file' => $e->getFile(),
@@ -108,7 +97,7 @@ class HubSpotController
     {
         try {
             $input = [];
-            foreach($data as $key => $value) {
+            foreach ($data as $key => $value) {
                 $input[] = [
                     'name' => $key,
                     'value' => $value
@@ -117,7 +106,7 @@ class HubSpotController
 
             $deal = $this->client->deals()->update($deal_id, $input);
             return $deal->dealId ?? false;
-        } catch(\Exception $e) {
+        } catch (\Exception $e) {
             Log::channel('hs-sync')->error('update_deal', [
                 'code' => $e->getCode(),
                 'file' => $e->getFile(),
