@@ -48,7 +48,7 @@ class HubSpotSyncCommand extends Command
                     $sb_customer = $sb->get_customer($data->Customer->Id);
                     $sb_customer_contact = $sb_customer->DefaultServiceLocation->PrimaryContact;
                     $sb_customer_location = $sb_customer->DefaultServiceLocation;
-                    $deal_name = sprintf('%s - %s - %s', $data->EstimateNumber, $sb_customer_location->AddressLine1, $data->Description);
+                    $deal_name = sprintf('%s, %s, %s', $data->EstimateNumber, $sb_customer_location->AddressLine1, $data->Description);
 
                     $input = [
                         'firstname' => $sb_customer_contact->FirstName,
