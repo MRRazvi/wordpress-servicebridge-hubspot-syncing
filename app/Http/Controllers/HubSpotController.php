@@ -48,6 +48,9 @@ class HubSpotController
             }
 
             $contact = $this->client->contacts()->createOrUpdate($email, $input);
+
+            dd($contact);
+
             return $contact->vid ?? false;
         } catch(\Exception $e) {
             Log::channel('hs-sync')->error('create_update_contact', [
