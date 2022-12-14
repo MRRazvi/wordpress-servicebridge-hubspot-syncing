@@ -21,6 +21,11 @@ php sb:database
 php hs:sync
 ```
 
+## Pending
+
+-   deal owner
+-   finished date
+
 ### Author
 
 Mubashir Rasool Razvi

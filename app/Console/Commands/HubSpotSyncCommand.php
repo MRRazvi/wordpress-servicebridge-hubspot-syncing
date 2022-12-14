@@ -80,7 +80,7 @@ class HubSpotSyncCommand extends Command
                                     'dealname' => $deal_name,
                                     'amount' => $this->get_estimate_deal_price($data),
                                     'dealstage' => $this->get_deal_stage($data->Status),
-                                    'kilde' => $this->get_marketing_campaign($data->MarketingCampaign->Name)
+                                    'kilde' => $this->get_marketing_campaign($data->MarketingCampaign->Name ?? '')
                                 ]
                             );
                         } else {
@@ -92,7 +92,7 @@ class HubSpotSyncCommand extends Command
                                     'pipeline' => 'default',
                                     'dealtype' => 'newbusiness',
                                     'closedate' => now()->addDays(14)->valueOf(),
-                                    'kilde' => $this->get_marketing_campaign($data->MarketingCampaign->Name)
+                                    'kilde' => $this->get_marketing_campaign($data->MarketingCampaign->Name ?? '')
                                 ]);
                             }
                         }
