@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Estimate;
+use App\Models\WorkOrder;
 use GuzzleHttp\Client;
 use GuzzleHttp\Promise;
 use Illuminate\Support\Facades\Log;
@@ -58,30 +59,33 @@ class ServiceBridgeController
 
     public function get_estimates()
     {
+        Log::channel('sb-database')->info('get_estimates:start');
+
         try {
             $estimates = [];
             $statues = ['Finished', 'WonEstimate', 'LostEstimate'];
 
             foreach ($statues as $status) {
-                for ($i = 1; $i <= $this->get_estimates_count($status) / 500; $i++) {
-                    dump(sprintf("starting: %s - %s", $i, $status));
+                $total_count = $this->get_estimates_count($status);
+                Log::channel('sb-database')->info('count', ['status' => $status, 'count' => $total_count]);
+
+                for ($i = 1; $i <= $total_count / 500 + 1; $i++) {
+                    Log::channel('sb-database')->info('request:init', ['index' => $i, 'status' => $status]);
+
+                    $query = [
+                        'sessionKey' => $this->session_key,
+                        'page' => $i,
+                        'pageSize' => (env('APP_ENV') == 'local') ? 5 : 500,
+                        'includeInactiveCustomers' => true,
+                        'includeInventoryInfo' => true,
+                        'statusFilter' => $status
+                    ];
 
                     $estimates[] = $this->client->requestAsync(
                         'GET',
                         sprintf('%s/Estimates', $this->base_url),
-                        [
-                            'query' => [
-                                'sessionKey' => $this->session_key,
-                                'page' => $i,
-                                'pageSize' => (env('APP_ENV') == 'local') ? 5 : 500,
-                                'includeInactiveCustomers' => true,
-                                'includeInventoryInfo' => true,
-                                'statusFilter' => $status
-                            ]
-                        ]
+                        ['query' => $query]
                     )->then(function ($response) use ($i, $status) {
-                        dump(sprintf("reaching: %s - %s", $i, $status));
-
                         $response = json_decode($response->getBody()->getContents());
                         $estimates = $response->Data;
 
@@ -117,7 +121,7 @@ class ServiceBridgeController
                             }
                         }
 
-                        return $response->TotalCount;
+                        Log::channel('sb-database')->info('request:done', ['index' => $i, 'status' => $status]);
                     });
                 }
             }
@@ -125,10 +129,6 @@ class ServiceBridgeController
             $estimates = Promise\Utils::settle(
                 Promise\Utils::unwrap($estimates),
             )->wait();
-
-            dd($estimates);
-
-            return $estimates;
         } catch (\Exception $e) {
             Log::channel('sb-client')->error('get_estimates', [
                 'code' => $e->getCode(),
@@ -138,6 +138,8 @@ class ServiceBridgeController
                 'trace' => $e->getTrace()
             ]);
         }
+
+        Log::channel('sb-database')->info('get_estimates:end');
     }
 
     public function get_estimates_count($status)
@@ -174,33 +176,71 @@ class ServiceBridgeController
 
     public function get_work_orders()
     {
+        Log::channel('sb-database')->info('get_work_orders:start');
+
         try {
             $work_orders = [];
+            $total_count = $this->get_work_orders_count();
+            Log::channel('sb-database')->info('count', ['count' => $total_count]);
 
-            for ($i = 1; $i <= $this->get_work_orders_count() / 500; $i++) {
+            for ($i = 1; $i <= $total_count / 500 + 1; $i++) {
+                Log::channel('sb-database')->info('request:init', ['index' => $i]);
+
+                $query = [
+                    'sessionKey' => $this->session_key,
+                    'page' => $i,
+                    'pageSize' => (env('APP_ENV') == 'local') ? 5 : 500,
+                    'includeInactiveCustomers' => true,
+                    'statusFilter' => 'Completed'
+                ];
+
                 $work_orders[] = $this->client->requestAsync(
                     'GET',
                     sprintf('%s/WorkOrders', $this->base_url),
-                    [
-                        'query' => [
-                            'sessionKey' => $this->session_key,
-                            'page' => $i,
-                            'pageSize' => (env('APP_ENV') == 'local') ? 5 : 500,
-                            'includeInactiveCustomers' => true,
-                            'statusFilter' => 'Completed'
-                        ]
-                    ]
+                    ['query' => $query]
                 )->then(function ($response) use ($i) {
                     $response = json_decode($response->getBody()->getContents());
-                    return $response->Data;
+                    $work_orders = $response->Data;
+
+                    foreach ($work_orders as $work_order) {
+                        $wo = WorkOrder::where('work_order_id', $work_order->Id)->count();
+
+                        if ($wo) {
+                            $wo = WorkOrder::where([
+                                'work_order_id' => $work_order->Id,
+                                'version' => $work_order->Metadata->Version
+                            ])->count();
+
+                            if ($wo == 0) {
+                                WorkOrder::where('work_order_id', $work_order->Id)
+                                    ->update([
+                                        'status' => $work_order->Status,
+                                        'version' => $work_order->Metadata->Version,
+                                        'synced' => false,
+                                        'created_at' => $work_order->Metadata->CreatedOn,
+                                        'updated_at' => $work_order->Metadata->UpdatedOn
+                                    ]);
+                            }
+                        } else {
+                            WorkOrder::create([
+                                'work_order_id' => $work_order->Id,
+                                'sb_account_id' => 1,
+                                'status' => $work_order->Status,
+                                'version' => $work_order->Metadata->Version,
+                                'synced' => false,
+                                'created_at' => $work_order->Metadata->CreatedOn,
+                                'updated_at' => $work_order->Metadata->UpdatedOn
+                            ]);
+                        }
+                    }
+
+                    Log::channel('sb-database')->info('request:done', ['index' => $i]);
                 });
             }
 
             $work_orders = Promise\Utils::settle(
                 Promise\Utils::unwrap($work_orders),
             )->wait();
-
-            return $work_orders;
         } catch (\Exception $e) {
             Log::channel('sb-client')->error('get_work_orders', [
                 'code' => $e->getCode(),
@@ -210,6 +250,8 @@ class ServiceBridgeController
                 'trace' => $e->getTrace()
             ]);
         }
+
+        Log::channel('sb-database')->info('get_work_orders:end');
     }
 
     public function get_work_orders_count()
