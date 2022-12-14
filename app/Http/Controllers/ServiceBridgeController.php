@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Estimate;
+use App\Models\ServiceBridgeAccount;
 use App\Models\WorkOrder;
 use GuzzleHttp\Client;
 use GuzzleHttp\Promise;
@@ -20,12 +21,17 @@ class ServiceBridgeController
 
     public $session_key;
 
+    public $sb_account_id;
+
     public function __construct($user_id, $user_pass)
     {
         $this->client = new Client();
         $this->base_url = env('SB_API_BASE_URL');
         $this->user_id = $user_id;
         $this->user_pass = $user_pass;
+
+        $sb_account = ServiceBridgeAccount::where('user_id', $user_id)->first();
+        $this->sb_account_id = $sb_account->id;
     }
 
     public function login()
@@ -111,7 +117,7 @@ class ServiceBridgeController
                             } else {
                                 Estimate::create([
                                     'estimate_id' => $estimate->Id,
-                                    'sb_account_id' => 1,
+                                    'sb_account_id' => $this->sb_account_id,
                                     'status' => $estimate->Status,
                                     'version' => $estimate->Metadata->Version,
                                     'synced' => false,
@@ -130,7 +136,7 @@ class ServiceBridgeController
                 Promise\Utils::unwrap($estimates),
             )->wait();
         } catch (\Exception $e) {
-            Log::channel('sb-client')->error('get_estimates', [
+            Log::channel('sb-database')->error('get_estimates', [
                 'code' => $e->getCode(),
                 'file' => $e->getFile(),
                 'line' => $e->getLine(),
@@ -164,7 +170,7 @@ class ServiceBridgeController
             $response = json_decode($response->getBody()->getContents());
             return $response->TotalCount;
         } catch (\Exception $e) {
-            Log::channel('sb-client')->error('get_estimates_count', [
+            Log::channel('sb-database')->error('get_estimates_count', [
                 'code' => $e->getCode(),
                 'file' => $e->getFile(),
                 'line' => $e->getLine(),
@@ -224,7 +230,7 @@ class ServiceBridgeController
                         } else {
                             WorkOrder::create([
                                 'work_order_id' => $work_order->Id,
-                                'sb_account_id' => 1,
+                                'sb_account_id' => $this->sb_account_id,
                                 'status' => $work_order->Status,
                                 'version' => $work_order->Metadata->Version,
                                 'synced' => false,
@@ -242,7 +248,7 @@ class ServiceBridgeController
                 Promise\Utils::unwrap($work_orders),
             )->wait();
         } catch (\Exception $e) {
-            Log::channel('sb-client')->error('get_work_orders', [
+            Log::channel('sb-database')->error('get_work_orders', [
                 'code' => $e->getCode(),
                 'file' => $e->getFile(),
                 'line' => $e->getLine(),
@@ -276,7 +282,7 @@ class ServiceBridgeController
             $response = json_decode($response->getBody()->getContents());
             return $response->TotalCount;
         } catch (\Exception $e) {
-            Log::channel('sb-client')->error('get_work_orders_count', [
+            Log::channel('sb-database')->error('get_work_orders_count', [
                 'code' => $e->getCode(),
                 'file' => $e->getFile(),
                 'line' => $e->getLine(),

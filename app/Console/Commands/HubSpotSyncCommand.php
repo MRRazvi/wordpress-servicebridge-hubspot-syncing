@@ -8,6 +8,7 @@ use App\Models\Estimate;
 use App\Models\ServiceBridgeAccount;
 use App\Models\WorkOrder;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Log;
 
 class HubSpotSyncCommand extends Command
 {
@@ -26,76 +27,82 @@ class HubSpotSyncCommand extends Command
 
     private function sync_estimates($hs, $sb_accounts)
     {
-        $estimates = Estimate::where('synced', false)->get();
-        foreach ($estimates as $estimate) {
-            try {
-                $sb = $sb_accounts[$estimate->sb_account_id];
-                $data = $sb->get_estimate($estimate->estimate_id);
+        Log::channel('hs:sync')->info('sync_estimates:start');
 
-                $this->get_estimate_deal_price($data);
+        try {
+            $estimates = Estimate::where('synced', false)->get();
+            foreach ($estimates as $estimate) {
+                try {
+                    $sb = $sb_accounts[$estimate->sb_account_id];
+                    $data = $sb->get_estimate($estimate->estimate_id);
 
-                // no need of not finished statuses
-                if ($data->Status != 'Finished' && $data->Status != 'WonEstimate' && $data->Status != 'LostEstimate') {
+                    $this->get_estimate_deal_price($data);
+
+                    if ($data->Status != 'Finished' && $data->Status != 'WonEstimate' && $data->Status != 'LostEstimate') {
+                        $estimate->synced = true;
+                        $estimate->save();
+                        continue;
+                    }
+
+                    $hs_contact = $hs->get_contact($data->Contact->Email);
+                    $sb_customer = $sb->get_customer($data->Customer->Id);
+                    $sb_customer_contact = $sb_customer->DefaultServiceLocation->PrimaryContact;
+                    $sb_customer_location = $sb_customer->DefaultServiceLocation;
+
+                    $input = [
+                        'firstname' => $sb_customer_contact->FirstName,
+                        'lastname' => $sb_customer_contact->LastName,
+                        'email' => $sb_customer_contact->Email,
+                        'phone' => $sb_customer_contact->CellPhoneNumber ?? $sb_customer_contact->PhoneNumber ?? '',
+                        'address' => $sb_customer_location->AddressLine1,
+                        'city' => $sb_customer_location->City,
+                        'zip' => $sb_customer_location->PostalCode,
+                        'lifecyclestage' => count($data->EstimateLines ?? []) > 0 ? 'customer' : 'opportunity',
+                        'status_from_sb' => $this->get_status_of_estimate_for_hs($data),
+                        'notat_om_aktivitet_i_service_bridge' => sprintf('%s - %s - %s', $data->EstimateNumber, $sb_customer_location->AddressLine1, $data->Description),
+                        'company' => $sb_customer->CompanyName ?? ''
+                    ];
+
+                    if ($hs_contact) {
+                        dump("estimate: update contact => " . $estimate->estimate_id);
+                        $hs->update_contact($hs_contact['id'], $input);
+
+                        $deal = $hs->search_deal($hs_contact['id']);
+                        if ($deal) {
+                            $hs->update_deal(
+                                $deal->dealId,
+                                [
+                                    'dealname' => sprintf('%s - %s - %s', $data->EstimateNumber, $sb_customer_location->AddressLine1, $data->Description),
+                                    'amount' => $this->get_estimate_deal_price($data)
+                                ]
+                            );
+                        }
+                    } else {
+                        dump("estimate: create contact => " . $estimate->estimate_id);
+                        $hs_contact = $hs->create_contact($input);
+
+                        if (isset($data->EstimateLines)) {
+                            $hs->create_deal($hs_contact['id'], [
+                                'dealname' => sprintf('%s - %s - %s', $data->EstimateNumber, $sb_customer_location->AddressLine1, $data->Description),
+                                'amount' => $this->get_estimate_deal_price($data),
+                                'pipeline' => 'default',
+                                'dealtype' => 'newbusiness',
+                                'dealstage' => 'contractsent',
+                                'closedate' => now()->addMonth()->valueOf()
+                            ]);
+                        }
+                    }
+
                     $estimate->synced = true;
                     $estimate->save();
-                    continue;
+                } catch (\Exception $e) {
+                    dd("error: " . $e->getMessage());
                 }
-
-                $hs_contact = $hs->get_contact($data->Contact->Email);
-                $sb_customer = $sb->get_customer($data->Customer->Id);
-                $sb_customer_contact = $sb_customer->DefaultServiceLocation->PrimaryContact;
-                $sb_customer_location = $sb_customer->DefaultServiceLocation;
-
-                $input = [
-                    'firstname' => $sb_customer_contact->FirstName,
-                    'lastname' => $sb_customer_contact->LastName,
-                    'email' => $sb_customer_contact->Email,
-                    'phone' => $sb_customer_contact->CellPhoneNumber ?? $sb_customer_contact->PhoneNumber ?? '',
-                    'address' => $sb_customer_location->AddressLine1,
-                    'city' => $sb_customer_location->City,
-                    'zip' => $sb_customer_location->PostalCode,
-                    'lifecyclestage' => count($data->EstimateLines ?? []) > 0 ? 'customer' : 'opportunity',
-                    'status_from_sb' => $this->get_status_of_estimate_for_hs($data),
-                    'notat_om_aktivitet_i_service_bridge' => sprintf('%s - %s - %s', $data->EstimateNumber, $sb_customer_location->AddressLine1, $data->Description),
-                    'company' => $sb_customer->CompanyName ?? ''
-                ];
-
-                if ($hs_contact) {
-                    dump("estimate: update contact => " . $estimate->estimate_id);
-                    $hs->update_contact($hs_contact['id'], $input);
-
-                    $deal = $hs->search_deal($hs_contact['id']);
-                    if ($deal) {
-                        $hs->update_deal(
-                            $deal->dealId,
-                            [
-                                'dealname' => sprintf('%s - %s - %s', $data->EstimateNumber, $sb_customer_location->AddressLine1, $data->Description),
-                                'amount' => $this->get_estimate_deal_price($data)
-                            ]
-                        );
-                    }
-                } else {
-                    dump("estimate: create contact => " . $estimate->estimate_id);
-                    $hs_contact = $hs->create_contact($input);
-
-                    if (isset($data->EstimateLines)) {
-                        $hs->create_deal($hs_contact['id'], [
-                            'dealname' => sprintf('%s - %s - %s', $data->EstimateNumber, $sb_customer_location->AddressLine1, $data->Description),
-                            'amount' => $this->get_estimate_deal_price($data),
-                            'pipeline' => 'default',
-                            'dealtype' => 'newbusiness',
-                            'dealstage' => 'contractsent',
-                            'closedate' => now()->addMonth()->valueOf()
-                        ]);
-                    }
-                }
-
-                $estimate->synced = true;
-                $estimate->save();
-            } catch (\Exception $e) {
-                dd("error: " . $e->getMessage());
             }
+        } catch (\Exception $e) {
         }
+
+        Log::channel('hs:sync')->info('sync_estimates:end');
     }
 
     private function sync_work_orders($hs, $sb_accounts)
