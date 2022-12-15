@@ -118,16 +118,6 @@ return [
             'path' => storage_path('logs/laravel.log'),
         ],
 
-        'sb-client' => [
-            'driver' => 'single',
-            'path' => storage_path('logs/sb-client.log'),
-        ],
-
-        'hs-client' => [
-            'driver' => 'single',
-            'path' => storage_path('logs/hs-client.log'),
-        ],
-
         'sb-database' => [
             'driver' => 'single',
             'path' => storage_path('logs/sb-database.log'),
@@ -136,6 +126,11 @@ return [
         'hs-sync' => [
             'driver' => 'single',
             'path' => storage_path('logs/hs-sync.log'),
+        ],
+
+        'hs-owners' => [
+            'driver' => 'single',
+            'path' => storage_path('logs/hs-owners.log'),
         ],
     ],
 
