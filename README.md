@@ -17,14 +17,10 @@ cd servicebridge-hubspot-syncing
 composer install
 php artisan migrate:fresh
 php sb:accounts
+php hs:owners
 php sb:database
 php hs:sync
 ```
-
-## Pending
-
--   deal owner
--   finished date
 
 ### Author
 
