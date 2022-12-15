@@ -24,6 +24,6 @@ php hs:sync
 
 ### Author
 
-Mubashir Rasool Razvi
-[Upwork](https://www.upwork.com/freelancers/mrrazvi)
+Mubashir Rasool Razvi  
+[Upwork](https://www.upwork.com/freelancers/mrrazvi)  
 [LinkedIn](https://www.linkedin.com/in/mrrazvi)
