@@ -19,11 +19,15 @@ class HubSpotSyncCommand extends Command
 
     public function handle()
     {
+        Log::channel('hs-sync')->info('start');
+
         $hs = new HubSpotController(env('HUBSPOT_API_KEY'));
         $sb_accounts = $this->get_sb_accounts();
 
         $this->sync_estimates($hs, $sb_accounts);
         $this->sync_work_orders($hs, $sb_accounts);
+
+        Log::channel('hs-sync')->info('end');
     }
 
     private function sync_estimates($hs, $sb_accounts)
@@ -121,14 +125,14 @@ class HubSpotSyncCommand extends Command
                         continue;
                     }
 
-                    $input = $this->get_input($sb, $data, $owners);
+                    $input = $this->get_input($sb, $data, $owners, 'work_order');
                     $hs_contact_id = $hs->create_update_contact($input['input']['email'], $input['input']);
 
                     if ($hs_contact_id) {
                         $work_order->synced = true;
                         $work_order->save();
 
-                        Log::channel('hs-sync')->info('done', ['id' => $work_order->id, 'estimate' => $work_order->work_order_id]);
+                        Log::channel('hs-sync')->info('done', ['id' => $work_order->id, 'work_order' => $work_order->work_order_id]);
                     }
                 } catch (\Exception $e) {
                     Log::channel('hs-sync')->error('sync_work_orders', [
@@ -192,9 +196,9 @@ class HubSpotSyncCommand extends Command
     private function get_status_of_work_order_for_hs($work_order)
     {
         if (preg_match('/-/mui', $work_order->WorkOrderNumber))
-            return 'WO Not recurring';
+            return 'Single job';
 
-        return 'WO Recurring';
+        return 'Recurring job';
     }
 
     private function get_estimate_deal_price($estimate)
@@ -245,30 +249,39 @@ class HubSpotSyncCommand extends Command
         return $result;
     }
 
-    private function get_input($sb, $data, $owners)
+    private function get_input($sb, $data, $owners, $type = 'estimates')
     {
         $sb_customer = $sb->get_customer($data->Customer->Id);
         $sb_customer_contact = $sb_customer->DefaultServiceLocation->PrimaryContact;
         $sb_customer_location = $sb_customer->DefaultServiceLocation;
-        $deal_name = sprintf('%s, %s, %s', $data->EstimateNumber, $sb_customer_location->AddressLine1, $data->Description);
 
         $input = [
             'firstname' => $sb_customer_contact->FirstName,
             'lastname' => $sb_customer_contact->LastName,
-            'email' => $sb_customer_contact->Email,
+            'email' => $data->Contact->Email,
             'phone' => empty($sb_customer_contact->CellPhoneNumber) ? $sb_customer_contact->PhoneNumber : $sb_customer_contact->CellPhoneNumber,
             'address' => $sb_customer_location->AddressLine1,
             'city' => $sb_customer_location->City,
             'zip' => $sb_customer_location->PostalCode,
-            'lifecyclestage' => count($data->EstimateLines ?? []) > 0 ? 'customer' : 'opportunity',
-            'status_from_sb' => $this->get_status_of_estimate_for_hs($data->Status),
-            'notat_om_aktivitet_i_service_bridge' => $deal_name,
-            'job_status_in_service_bridge' => 'Estimate',
             'company' => empty($sb_customer->CompanyName) ? $sb_customer->DisplayName : $sb_customer->CompanyName,
             'hubspot_owner_id' => empty($data->SalesRepresentative->Name) ? '' : $owners[$data->SalesRepresentative->Name],
             'job_date_in_service_bridge' => empty($data->Visits) ? '' : strtotime($data->Visits[0]->Date) * 1000,
             'customer_type' => $sb_customer->CustomerType ?? ''
         ];
+
+        if ($type == 'work_order') {
+            $deal_name = sprintf('%s, %s, %s', $data->WorkOrderNumber, $sb_customer_location->AddressLine1, $data->Description);
+            $input['lifecyclestage'] = count($data->WorkWorderLines ?? []) > 0 ? 'customer' : 'opportunity';
+            $input['status_from_sb'] = 'EST Finish';
+            $input['notat_om_aktivitet_i_service_bridge'] = $deal_name;
+            $input['job_status_in_service_bridge'] = $this->get_status_of_work_order_for_hs($data);
+        } else {
+            $deal_name = sprintf('%s, %s, %s', $data->EstimateNumber, $sb_customer_location->AddressLine1, $data->Description);
+            $input['lifecyclestage'] = count($data->EstimateLines ?? []) > 0 ? 'customer' : 'opportunity';
+            $input['status_from_sb'] = $this->get_status_of_estimate_for_hs($data->Status);
+            $input['notat_om_aktivitet_i_service_bridge'] = $deal_name;
+            $input['job_status_in_service_bridge'] = 'Estimate';
+        }
 
         return [
             'input' => $input,
