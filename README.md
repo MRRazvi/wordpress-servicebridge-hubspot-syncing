@@ -18,7 +18,7 @@ composer install
 php artisan migrate:fresh
 php sb:accounts
 php hs:owners
-php sb:database
+php sb:sync
 php hs:sync
 ```
 

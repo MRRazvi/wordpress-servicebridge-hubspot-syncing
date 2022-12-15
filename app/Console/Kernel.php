@@ -9,9 +9,9 @@ class Kernel extends ConsoleKernel
 {
     protected function schedule(Schedule $schedule)
     {
-        $schedule->command('sb:database')->everyTenMinutes();
-        $schedule->command('hs:sync')->everyFiveMinutes();
         $schedule->command('hs:owners')->hourly();
+        $schedule->command('sb:sync')->everyTenMinutes();
+        $schedule->command('hs:sync')->everyFiveMinutes();
 
         $schedule->command('telescope:prune --hours=48')->daily();
     }
