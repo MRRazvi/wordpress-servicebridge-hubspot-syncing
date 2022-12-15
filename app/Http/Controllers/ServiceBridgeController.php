@@ -53,19 +53,17 @@ class ServiceBridgeController
 
             return $response->Data;
         } catch (\Exception $e) {
-            Log::channel('sb-client')->error('login', [
+            Log::error('sb:login', [
                 'code' => $e->getCode(),
                 'file' => $e->getFile(),
-                'line' => $e->getLine(),
-                'message' => $e->getMessage(),
-                'trace' => $e->getTrace()
+                'message' => $e->getMessage()
             ]);
         }
     }
 
     public function get_estimates()
     {
-        Log::channel('sb-database')->info('get_estimates:start');
+        Log::channel('sb-sync')->info('get_estimates:start');
 
         try {
             $estimates = [];
@@ -73,10 +71,10 @@ class ServiceBridgeController
 
             foreach ($statues as $status) {
                 $total_count = $this->get_estimates_count($status);
-                Log::channel('sb-database')->info('count', ['status' => $status, 'count' => $total_count]);
+                Log::channel('sb-sync')->info('count', ['status' => $status, 'count' => $total_count]);
 
                 for ($i = 1; $i <= $total_count / 500 + 1; $i++) {
-                    Log::channel('sb-database')->info('request:init', ['index' => $i, 'status' => $status]);
+                    Log::channel('sb-sync')->info('request:init', ['index' => $i, 'status' => $status]);
 
                     $query = [
                         'sessionKey' => $this->session_key,
@@ -127,7 +125,7 @@ class ServiceBridgeController
                             }
                         }
 
-                        Log::channel('sb-database')->info('request:done', ['index' => $i, 'status' => $status]);
+                        Log::channel('sb-sync')->info('request:done', ['index' => $i, 'status' => $status]);
                     });
                 }
             }
@@ -136,16 +134,14 @@ class ServiceBridgeController
                 Promise\Utils::unwrap($estimates),
             )->wait();
         } catch (\Exception $e) {
-            Log::channel('sb-database')->error('get_estimates', [
+            Log::channel('sb-sync')->error('get_estimates', [
                 'code' => $e->getCode(),
                 'file' => $e->getFile(),
-                'line' => $e->getLine(),
-                'message' => $e->getMessage(),
-                'trace' => $e->getTrace()
+                'message' => $e->getMessage()
             ]);
         }
 
-        Log::channel('sb-database')->info('get_estimates:end');
+        Log::channel('sb-sync')->info('get_estimates:end');
     }
 
     public function get_estimates_count($status)
@@ -170,27 +166,25 @@ class ServiceBridgeController
             $response = json_decode($response->getBody()->getContents());
             return $response->TotalCount;
         } catch (\Exception $e) {
-            Log::channel('sb-database')->error('get_estimates_count', [
+            Log::channel('sb-sync')->error('get_estimates_count', [
                 'code' => $e->getCode(),
                 'file' => $e->getFile(),
-                'line' => $e->getLine(),
-                'message' => $e->getMessage(),
-                'trace' => $e->getTrace()
+                'message' => $e->getMessage()
             ]);
         }
     }
 
     public function get_work_orders()
     {
-        Log::channel('sb-database')->info('get_work_orders:start');
+        Log::channel('sb-sync')->info('get_work_orders:start');
 
         try {
             $work_orders = [];
             $total_count = $this->get_work_orders_count();
-            Log::channel('sb-database')->info('count', ['count' => $total_count]);
+            Log::channel('sb-sync')->info('count', ['count' => $total_count]);
 
             for ($i = 1; $i <= $total_count / 500 + 1; $i++) {
-                Log::channel('sb-database')->info('request:init', ['index' => $i]);
+                Log::channel('sb-sync')->info('request:init', ['index' => $i]);
 
                 $query = [
                     'sessionKey' => $this->session_key,
@@ -240,7 +234,7 @@ class ServiceBridgeController
                         }
                     }
 
-                    Log::channel('sb-database')->info('request:done', ['index' => $i]);
+                    Log::channel('sb-sync')->info('request:done', ['index' => $i]);
                 });
             }
 
@@ -248,16 +242,14 @@ class ServiceBridgeController
                 Promise\Utils::unwrap($work_orders),
             )->wait();
         } catch (\Exception $e) {
-            Log::channel('sb-database')->error('get_work_orders', [
+            Log::channel('sb-sync')->error('get_work_orders', [
                 'code' => $e->getCode(),
                 'file' => $e->getFile(),
-                'line' => $e->getLine(),
-                'message' => $e->getMessage(),
-                'trace' => $e->getTrace()
+                'message' => $e->getMessage()
             ]);
         }
 
-        Log::channel('sb-database')->info('get_work_orders:end');
+        Log::channel('sb-sync')->info('get_work_orders:end');
     }
 
     public function get_work_orders_count()
@@ -282,12 +274,10 @@ class ServiceBridgeController
             $response = json_decode($response->getBody()->getContents());
             return $response->TotalCount;
         } catch (\Exception $e) {
-            Log::channel('sb-database')->error('get_work_orders_count', [
+            Log::channel('sb-sync')->error('get_work_orders_count', [
                 'code' => $e->getCode(),
                 'file' => $e->getFile(),
-                'line' => $e->getLine(),
-                'message' => $e->getMessage(),
-                'trace' => $e->getTrace()
+                'message' => $e->getMessage()
             ]);
         }
     }
@@ -311,9 +301,7 @@ class ServiceBridgeController
             Log::channel('hs-sync')->error('get_estimate', [
                 'code' => $e->getCode(),
                 'file' => $e->getFile(),
-                'line' => $e->getLine(),
-                'message' => $e->getMessage(),
-                'trace' => $e->getTrace()
+                'message' => $e->getMessage()
             ]);
         }
     }
@@ -334,12 +322,10 @@ class ServiceBridgeController
             $response = json_decode($response->getBody()->getContents());
             return $response->Data;
         } catch (\Exception $e) {
-            Log::channel('sb-client')->error('get_work_order', [
+            Log::channel('hs-sync')->error('get_work_order', [
                 'code' => $e->getCode(),
                 'file' => $e->getFile(),
-                'line' => $e->getLine(),
-                'message' => $e->getMessage(),
-                'trace' => $e->getTrace()
+                'message' => $e->getMessage()
             ]);
         }
     }
@@ -364,9 +350,7 @@ class ServiceBridgeController
             Log::channel('hs-sync')->error('get_customer', [
                 'code' => $e->getCode(),
                 'file' => $e->getFile(),
-                'line' => $e->getLine(),
-                'message' => $e->getMessage(),
-                'trace' => $e->getTrace()
+                'message' => $e->getMessage()
             ]);
         }
     }

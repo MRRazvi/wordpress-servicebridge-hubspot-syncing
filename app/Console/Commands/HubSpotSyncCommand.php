@@ -10,7 +10,6 @@ use App\Models\ServiceBridgeAccount;
 use App\Models\WorkOrder;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
-use Termwind\Components\Dd;
 
 class HubSpotSyncCommand extends Command
 {

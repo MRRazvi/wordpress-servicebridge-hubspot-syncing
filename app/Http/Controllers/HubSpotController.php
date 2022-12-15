@@ -84,10 +84,9 @@ class HubSpotController
             $deal = $this->client->deals()->create($input, ['associatedVids' => [$contact_id]]);
             return $deal->dealId ?? false;
         } catch (\Exception $e) {
-            Log::channel('hs-client')->error('create_deal', [
+            Log::channel('hs-sync')->error('create_deal', [
                 'code' => $e->getCode(),
                 'file' => $e->getFile(),
-                'line' => $e->getLine(),
                 'message' => $e->getMessage()
             ]);
         }
