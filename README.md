@@ -16,10 +16,10 @@ git clone https://github.com/MRRazvi/servicebridge-hubspot-syncing.git
 cd servicebridge-hubspot-syncing
 composer install
 php artisan migrate:fresh
-php sb:accounts
-php hs:owners
-php sb:sync
-php hs:sync
+php artisan sb:accounts
+php artisan hs:owners
+php artisan sb:sync
+php artisan hs:sync
 ```
 
 ### Author
