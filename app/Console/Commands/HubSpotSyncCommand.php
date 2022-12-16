@@ -35,7 +35,7 @@ class HubSpotSyncCommand extends Command
         Log::channel('hs-sync')->info('sync_estimates:start');
 
         try {
-            $estimates = Estimate::where('synced', false)->get();
+            $estimates = Estimate::where('synced', false)->orderBy('created_at', 'asc')->get();
             $owners = $this->get_sales_representatives();
             Log::channel('hs-sync')->info('count', ['count' => $estimates->count()]);
 
@@ -119,7 +119,7 @@ class HubSpotSyncCommand extends Command
         Log::channel('hs-sync')->info('sync_work_orders:start');
 
         try {
-            $work_orders = WorkOrder::where('synced', false)->get();
+            $work_orders = WorkOrder::where('synced', false)->orderBy('created_at', 'asc')->get();
             $owners = $this->get_sales_representatives();
             Log::channel('hs-sync')->info('count', ['count' => $work_orders->count()]);
 
@@ -138,7 +138,7 @@ class HubSpotSyncCommand extends Command
                     $contact = $sb->get_contact($job->Contact->Id);
                     $location = $sb->get_location($job->Location->Id);
                     $latest_job = $this->get_latest_job($customer->DefaultServiceLocation->PrimaryContact->Email, $sb);
-                    $contact_input = $this->get_contact_input($job, $contact, $location, $customer, $latest_job, $owners);
+                    $contact_input = $this->get_contact_input($job, $contact, $location, $customer, $latest_job, $owners, 'work_order');
                     $hs_contact_id = $hs->create_update_contact($job->Contact->Email, $contact_input);
 
                     if ($hs_contact_id) {
@@ -262,7 +262,7 @@ class HubSpotSyncCommand extends Command
         return $result;
     }
 
-    private function get_contact_input($job, $contact, $location, $customer, $latest_job, $owners)
+    private function get_contact_input($job, $contact, $location, $customer, $latest_job, $owners, $type = 'estimates')
     {
         $data = [
             'firstname' => $contact->FirstName,
@@ -278,8 +278,8 @@ class HubSpotSyncCommand extends Command
             'customer_type' => $customer->CustomerType ?? ''
         ];
 
-        if ($latest_job['type'] == 'work_order') {
-            $data['status_from_sb'] = 'EST Finish';
+        if ($type == 'work_order') {
+            $data['status_from_sb'] = 'WO Recurring';
             $data['job_status_in_service_bridge'] = $this->get_status_of_work_order_for_hs($job->WorkOrderNumber);
             $data['lifecyclestage'] = count($job->WorkWorderLines ?? []) > 0 ? 'customer' : 'opportunity';
             $data['notat_om_aktivitet_i_service_bridge'] = sprintf(
@@ -288,7 +288,6 @@ class HubSpotSyncCommand extends Command
                 $customer->DefaultServiceLocation->AddressLine1 ?? '',
                     $latest_job['data']->Description ?? ''
             );
-
         } else {
             $data['job_status_in_service_bridge'] = 'Estimate';
             $data['status_from_sb'] = $this->get_status_of_estimate_for_hs($job->Status);
@@ -299,7 +298,6 @@ class HubSpotSyncCommand extends Command
                 $customer->DefaultServiceLocation->AddressLine1 ?? '',
                     $latest_job['data']->Description ?? ''
             );
-
         }
 
         return $data;
