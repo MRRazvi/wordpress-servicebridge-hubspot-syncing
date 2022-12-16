@@ -80,7 +80,6 @@ class ServiceBridgeController
                         'sessionKey' => $this->session_key,
                         'page' => $i,
                         'pageSize' => (env('APP_ENV') == 'local') ? 5 : 500,
-                        'includeInactiveCustomers' => true,
                         'includeInventoryInfo' => true,
                         'statusFilter' => $status
                     ];
@@ -105,7 +104,8 @@ class ServiceBridgeController
                                 if ($e == 0) {
                                     Estimate::where('estimate_id', $estimate->Id)
                                         ->update([
-                                            'email' => $estimate->Customer->Email,
+                                            'customer_id' => $estimate->Customer->Id,
+                                            'email' => $estimate->Contact->Email,
                                             'status' => $estimate->Status,
                                             'version' => $estimate->Metadata->Version,
                                             'synced' => false,
@@ -117,7 +117,8 @@ class ServiceBridgeController
                                 Estimate::create([
                                     'estimate_id' => $estimate->Id,
                                     'sb_account_id' => $this->sb_account_id,
-                                    'email' => $estimate->Customer->Email,
+                                    'customer_id' => $estimate->Customer->Id,
+                                    'email' => $estimate->Contact->Email,
                                     'status' => $estimate->Status,
                                     'version' => $estimate->Metadata->Version,
                                     'synced' => false,
@@ -192,7 +193,6 @@ class ServiceBridgeController
                     'sessionKey' => $this->session_key,
                     'page' => $i,
                     'pageSize' => (env('APP_ENV') == 'local') ? 5 : 500,
-                    'includeInactiveCustomers' => true,
                     'statusFilter' => 'Completed'
                 ];
 
@@ -216,7 +216,8 @@ class ServiceBridgeController
                             if ($wo == 0) {
                                 WorkOrder::where('work_order_id', $work_order->Id)
                                     ->update([
-                                        'email' => $work_order->Customer->Email,
+                                        'customer_id' => $work_order->Customer->Id,
+                                        'email' => $work_order->Contact->Email,
                                         'status' => $work_order->Status,
                                         'version' => $work_order->Metadata->Version,
                                         'synced' => false,
@@ -228,7 +229,8 @@ class ServiceBridgeController
                             WorkOrder::create([
                                 'work_order_id' => $work_order->Id,
                                 'sb_account_id' => $this->sb_account_id,
-                                'email' => $work_order->Customer->Email,
+                                'customer_id' => $work_order->Customer->Id,
+                                'email' => $work_order->Contact->Email,
                                 'status' => $work_order->Status,
                                 'version' => $work_order->Metadata->Version,
                                 'synced' => false,
