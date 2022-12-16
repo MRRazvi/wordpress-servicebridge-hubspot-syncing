@@ -42,44 +42,53 @@ class HubSpotSyncCommand extends Command
             foreach ($estimates as $estimate) {
                 try {
                     $sb = $sb_accounts[$estimate->sb_account_id];
-                    $data = $sb->get_estimate($estimate->estimate_id);
+                    $job = $sb->get_estimate($estimate->estimate_id);
 
-                    if ($data->Status != 'Finished' && $data->Status != 'WonEstimate' && $data->Status != 'LostEstimate') {
+                    if ($job->Status != 'Finished' && $job->Status != 'WonEstimate' && $job->Status != 'LostEstimate') {
                         $estimate->synced = true;
                         $estimate->save();
                         continue;
                     }
 
-                    $input = $this->get_input($sb, $data, $owners);
-                    $hs_contact_id = $hs->create_update_contact($input['input']['email'], $input['input']);
+                    $customer = $sb->get_customer($job->Customer->Id);
+                    $contact = $sb->get_contact($job->Contact->Id);
+                    $location = $sb->get_location($job->Location->Id);
+                    $latest_job = $this->get_latest_job($job->Contact->Email, $sb);
+                    $contact_input = $this->get_contact_input($job, $contact, $location, $customer, $latest_job, $owners);
+                    $hs_contact_id = $hs->create_update_contact($job->Contact->Email, $contact_input);
 
                     if ($hs_contact_id) {
-                        $deal = $hs->search_deal($data->EstimateNumber, $hs_contact_id);
+                        $deal = $hs->search_deal($job->EstimateNumber, $hs_contact_id);
+                        $deal_name = sprintf(
+                            '%s, %s, %s',
+                            $job->EstimateNumber,
+                            $customer->DefaultServiceLocation->AddressLine1 ?? '',
+                                $latest_job['data']->Description ?? ''
+                        );
+
                         if ($deal) {
                             $hs->update_deal(
                                 $deal->dealId,
                                 [
-                                    'dealname' => $input['deal_name'],
-                                    'amount' => $this->get_estimate_deal_price($data),
-                                    'dealstage' => $this->get_deal_stage($data->Status),
-                                    'kilde' => $this->get_marketing_campaign($data->MarketingCampaign->Name ?? ''),
-                                    'hubspot_owner_id' => empty($data->SalesRepresentative->Name) ? '' : $owners[$data->SalesRepresentative->Name]
+                                    'dealname' => $deal_name,
+                                    'amount' => $this->get_estimate_deal_price($job),
+                                    'dealstage' => $this->get_deal_stage($job->Status),
+                                    'kilde' => $this->get_marketing_campaign($job->MarketingCampaign->Name ?? ''),
+                                    'hubspot_owner_id' => empty($job->SalesRepresentative->Name) ? '' : $owners[$job->SalesRepresentative->Name]
                                 ]
                             );
                         } else {
                             $hs->create_deal($hs_contact_id, [
-                                'dealname' => $input['deal_name'],
-                                'amount' => $this->get_estimate_deal_price($data),
-                                'dealstage' => $this->get_deal_stage($data->Status),
+                                'dealname' => $deal_name,
+                                'amount' => $this->get_estimate_deal_price($job),
+                                'dealstage' => $this->get_deal_stage($job->Status),
                                 'pipeline' => 'default',
                                 'dealtype' => 'newbusiness',
                                 'closedate' => now()->addDays(14)->valueOf(),
-                                'kilde' => $this->get_marketing_campaign($data->MarketingCampaign->Name ?? ''),
-                                'hubspot_owner_id' => empty($data->SalesRepresentative->Name) ? '' : $owners[$data->SalesRepresentative->Name]
+                                'kilde' => $this->get_marketing_campaign($job->MarketingCampaign->Name ?? ''),
+                                'hubspot_owner_id' => empty($job->SalesRepresentative->Name) ? '' : $owners[$job->SalesRepresentative->Name]
                             ]);
                         }
-
-                        dd("done");
 
                         $estimate->synced = true;
                         $estimate->save();
@@ -117,16 +126,20 @@ class HubSpotSyncCommand extends Command
             foreach ($work_orders as $work_order) {
                 try {
                     $sb = $sb_accounts[$work_order->sb_account_id];
-                    $data = $sb->get_work_order($work_order->work_order_id);
+                    $job = $sb->get_work_order($work_order->work_order_id);
 
-                    if ($data->Status != 'Completed') {
+                    if ($job->Status != 'Completed') {
                         $work_order->synced = true;
                         $work_order->save();
                         continue;
                     }
 
-                    $input = $this->get_input($sb, $data, $owners, 'work_order');
-                    $hs_contact_id = $hs->create_update_contact($input['input']['email'], $input['input']);
+                    $customer = $sb->get_customer($job->Customer->Id);
+                    $contact = $sb->get_contact($job->Contact->Id);
+                    $location = $sb->get_location($job->Location->Id);
+                    $latest_job = $this->get_latest_job($job->Contact->Email, $sb);
+                    $contact_input = $this->get_contact_input($job, $contact, $location, $customer, $latest_job, $owners);
+                    $hs_contact_id = $hs->create_update_contact($job->Contact->Email, $contact_input);
 
                     if ($hs_contact_id) {
                         $work_order->synced = true;
@@ -195,7 +208,7 @@ class HubSpotSyncCommand extends Command
 
     private function get_status_of_work_order_for_hs($work_order)
     {
-        if (preg_match('/-/mui', $work_order->WorkOrderNumber))
+        if (preg_match('/-/mui', $work_order))
             return 'Single job';
 
         return 'Recurring job';
@@ -249,43 +262,66 @@ class HubSpotSyncCommand extends Command
         return $result;
     }
 
-    private function get_input($sb, $data, $owners, $type = 'estimates')
+    private function get_contact_input($job, $contact, $location, $customer, $latest_job, $owners)
     {
-        $sb_customer = $sb->get_customer($data->Customer->Id);
-        $sb_customer_contact = $sb_customer->DefaultServiceLocation->PrimaryContact;
-        $sb_customer_location = $sb_customer->DefaultServiceLocation;
-
-        $input = [
-            'firstname' => $sb_customer_contact->FirstName,
-            'lastname' => $sb_customer_contact->LastName,
-            'email' => $data->Contact->Email,
-            'phone' => empty($sb_customer_contact->CellPhoneNumber) ? $sb_customer_contact->PhoneNumber : $sb_customer_contact->CellPhoneNumber,
-            'address' => $sb_customer_location->AddressLine1,
-            'city' => $sb_customer_location->City,
-            'zip' => $sb_customer_location->PostalCode,
-            'company' => empty($sb_customer->CompanyName) ? $sb_customer->DisplayName : $sb_customer->CompanyName,
-            'hubspot_owner_id' => empty($data->SalesRepresentative->Name) ? '' : $owners[$data->SalesRepresentative->Name],
-            'job_date_in_service_bridge' => empty($data->Visits) ? '' : strtotime($data->Visits[0]->Date) * 1000,
-            'customer_type' => $sb_customer->CustomerType ?? ''
+        $data = [
+            'firstname' => $contact->FirstName,
+            'lastname' => $contact->LastName,
+            'email' => $contact->Email,
+            'phone' => empty($contact->CellPhoneNumber) ? $contact->PhoneNumber : $contact->CellPhoneNumber,
+            'address' => $location->AddressLine1,
+            'city' => $location->City,
+            'zip' => $location->PostalCode,
+            'company' => empty($customer->CompanyName) ? $customer->DisplayName : $customer->CompanyName,
+            'hubspot_owner_id' => empty($job->SalesRepresentative->Name) ? '' : $owners[$job->SalesRepresentative->Name],
+            'job_date_in_service_bridge' => empty($job->Visits) ? '' : strtotime($job->Visits[0]->Date) * 1000,
+            'customer_type' => $customer->CustomerType ?? ''
         ];
 
-        if ($type == 'work_order') {
-            $deal_name = sprintf('%s, %s, %s', $data->WorkOrderNumber, $sb_customer_location->AddressLine1, $data->Description);
-            $input['lifecyclestage'] = count($data->WorkWorderLines ?? []) > 0 ? 'customer' : 'opportunity';
-            $input['status_from_sb'] = 'EST Finish';
-            $input['notat_om_aktivitet_i_service_bridge'] = $deal_name;
-            $input['job_status_in_service_bridge'] = $this->get_status_of_work_order_for_hs($data);
+        if ($latest_job['type'] == 'work_order') {
+            $data['status_from_sb'] = 'EST Finish';
+            $data['job_status_in_service_bridge'] = $this->get_status_of_work_order_for_hs($job->WorkOrderNumber);
+            $data['lifecyclestage'] = count($job->WorkWorderLines ?? []) > 0 ? 'customer' : 'opportunity';
+            $data['notat_om_aktivitet_i_service_bridge'] = sprintf(
+                '%s, %s, %s',
+                    $latest_job['data']->WorkOrderNumber,
+                $customer->DefaultServiceLocation->AddressLine1 ?? '',
+                    $latest_job['data']->Description ?? ''
+            );
+
         } else {
-            $deal_name = sprintf('%s, %s, %s', $data->EstimateNumber, $sb_customer_location->AddressLine1, $data->Description);
-            $input['lifecyclestage'] = count($data->EstimateLines ?? []) > 0 ? 'customer' : 'opportunity';
-            $input['status_from_sb'] = $this->get_status_of_estimate_for_hs($data->Status);
-            $input['notat_om_aktivitet_i_service_bridge'] = $deal_name;
-            $input['job_status_in_service_bridge'] = 'Estimate';
+            $data['job_status_in_service_bridge'] = 'Estimate';
+            $data['status_from_sb'] = $this->get_status_of_estimate_for_hs($job->Status);
+            $data['lifecyclestage'] = count($job->EstimateLines ?? []) > 0 ? 'customer' : 'opportunity';
+            $data['notat_om_aktivitet_i_service_bridge'] = sprintf(
+                '%s, %s, %s',
+                    $latest_job['data']->EstimateNumber,
+                $customer->DefaultServiceLocation->AddressLine1 ?? '',
+                    $latest_job['data']->Description ?? ''
+            );
+
+        }
+
+        return $data;
+    }
+
+    private function get_latest_job($email, $sb)
+    {
+        $db_estimates = Estimate::where('email', $email)->orderBy('created_at', 'desc');
+        $db_work_orders = WorkOrder::where('email', $email)->orderBy('created_at', 'desc');
+
+        if ($db_work_orders->count()) {
+            if ($db_estimates->first()->created_at->valueOf() < $db_work_orders->first()->created_at->valueOf()) {
+                return [
+                    'type' => 'work_order',
+                    'data' => $sb->get_work_order($db_work_orders->first()->work_order_id)
+                ];
+            }
         }
 
         return [
-            'input' => $input,
-            'deal_name' => $deal_name
+            'type' => 'estimate',
+            'data' => $sb->get_estimate($db_estimates->first()->estimate_id)
         ];
     }
 }

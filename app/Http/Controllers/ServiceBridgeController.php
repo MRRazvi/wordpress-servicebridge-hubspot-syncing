@@ -105,7 +105,7 @@ class ServiceBridgeController
                                 if ($e == 0) {
                                     Estimate::where('estimate_id', $estimate->Id)
                                         ->update([
-                                            'email' => $estimate->Contact->Email,
+                                            'email' => $estimate->Customer->Email,
                                             'status' => $estimate->Status,
                                             'version' => $estimate->Metadata->Version,
                                             'synced' => false,
@@ -117,7 +117,7 @@ class ServiceBridgeController
                                 Estimate::create([
                                     'estimate_id' => $estimate->Id,
                                     'sb_account_id' => $this->sb_account_id,
-                                    'email' => $estimate->Contact->Email,
+                                    'email' => $estimate->Customer->Email,
                                     'status' => $estimate->Status,
                                     'version' => $estimate->Metadata->Version,
                                     'synced' => false,
@@ -216,7 +216,7 @@ class ServiceBridgeController
                             if ($wo == 0) {
                                 WorkOrder::where('work_order_id', $work_order->Id)
                                     ->update([
-                                        'email' => $work_order->Contact->Email,
+                                        'email' => $work_order->Customer->Email,
                                         'status' => $work_order->Status,
                                         'version' => $work_order->Metadata->Version,
                                         'synced' => false,
@@ -228,7 +228,7 @@ class ServiceBridgeController
                             WorkOrder::create([
                                 'work_order_id' => $work_order->Id,
                                 'sb_account_id' => $this->sb_account_id,
-                                'email' => $work_order->Contact->Email,
+                                'email' => $work_order->Customer->Email,
                                 'status' => $work_order->Status,
                                 'version' => $work_order->Metadata->Version,
                                 'synced' => false,
@@ -352,6 +352,56 @@ class ServiceBridgeController
             return $response->Data;
         } catch (\Exception $e) {
             Log::channel('hs-sync')->error('get_customer', [
+                'code' => $e->getCode(),
+                'file' => $e->getFile(),
+                'message' => $e->getMessage()
+            ]);
+        }
+    }
+
+    public function get_contact($id)
+    {
+        try {
+            $response = $this->client->request(
+                'GET',
+                sprintf('%s/Contacts/%s', $this->base_url, $id),
+                [
+                    'query' => [
+                        'sessionKey' => $this->session_key,
+                        'includeCustomFields' => true
+                    ]
+                ]
+            );
+
+            $response = json_decode($response->getBody()->getContents());
+            return $response->Data;
+        } catch (\Exception $e) {
+            Log::channel('hs-sync')->error('get_contact', [
+                'code' => $e->getCode(),
+                'file' => $e->getFile(),
+                'message' => $e->getMessage()
+            ]);
+        }
+    }
+
+    public function get_location($id)
+    {
+        try {
+            $response = $this->client->request(
+                'GET',
+                sprintf('%s/Locations/%s', $this->base_url, $id),
+                [
+                    'query' => [
+                        'sessionKey' => $this->session_key,
+                        'includeCustomFields' => true
+                    ]
+                ]
+            );
+
+            $response = json_decode($response->getBody()->getContents());
+            return $response->Data;
+        } catch (\Exception $e) {
+            Log::channel('hs-sync')->error('get_location', [
                 'code' => $e->getCode(),
                 'file' => $e->getFile(),
                 'message' => $e->getMessage()
