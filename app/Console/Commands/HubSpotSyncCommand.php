@@ -97,9 +97,8 @@ class HubSpotSyncCommand extends Command
                     }
                 } catch (\Exception $e) {
                     Log::channel('hs-sync')->error('sync_estimates', [
-                        'code' => $e->getCode(),
-                        'file' => $e->getFile(),
-                        'message' => $e->getMessage()
+                        'message' => $e->getMessage(),
+                        'trace' => $e->getLine()
                     ]);
                 }
             }
@@ -137,8 +136,8 @@ class HubSpotSyncCommand extends Command
                     $customer = $sb->get_customer($job->Customer->Id);
                     $contact = $sb->get_contact($job->Contact->Id);
                     $location = $sb->get_location($job->Location->Id);
-                    $latest_job = $this->get_latest_job($customer->DefaultServiceLocation->PrimaryContact->Email, $sb);
-                    $contact_input = $this->get_contact_input($job, $contact, $location, $customer, $latest_job, $owners, 'work_order');
+                    $latest_job = $this->get_latest_job($customer->Id, $sb);
+                    $contact_input = $this->get_contact_input($job, $contact, $location, $customer, $latest_job, $owners);
                     $hs_contact_id = $hs->create_update_contact($job->Contact->Email, $contact_input);
 
                     if ($hs_contact_id) {
@@ -264,6 +263,12 @@ class HubSpotSyncCommand extends Command
 
     private function get_contact_input($job, $contact, $location, $customer, $latest_job, $owners, $type = 'estimates')
     {
+        if (empty($job->Visits)) {
+            $scheduled_at = strtotime($job->WonOrLostDate) * 1000 ?? '';
+        } else {
+            $scheduled_at = strtotime($job->Visits[0]->Date) * 1000 ?? '';
+        }
+
         $data = [
             'firstname' => $contact->FirstName,
             'lastname' => $contact->LastName,
@@ -274,7 +279,7 @@ class HubSpotSyncCommand extends Command
             'zip' => $location->PostalCode,
             'company' => empty($customer->CompanyName) ? $customer->DisplayName : $customer->CompanyName,
             'hubspot_owner_id' => empty($job->SalesRepresentative->Name) ? '' : $owners[$job->SalesRepresentative->Name],
-            'job_date_in_service_bridge' => empty($job->Visits) ? '' : strtotime($job->Visits[0]->Date) * 1000,
+            'job_date_in_service_bridge' => $scheduled_at,
             'customer_type' => $customer->CustomerType ?? ''
         ];
 
@@ -282,6 +287,13 @@ class HubSpotSyncCommand extends Command
             $data['status_from_sb'] = 'WO Recurring';
             $data['job_status_in_service_bridge'] = $this->get_status_of_work_order_for_hs($job->WorkOrderNumber);
             $data['lifecyclestage'] = count($job->WorkWorderLines ?? []) > 0 ? 'customer' : 'opportunity';
+        } else {
+            $data['job_status_in_service_bridge'] = 'Estimate';
+            $data['status_from_sb'] = $this->get_status_of_estimate_for_hs($job->Status);
+            $data['lifecyclestage'] = count($job->EstimateLines ?? []) > 0 ? 'customer' : 'opportunity';
+        }
+
+        if ($latest_job['type'] == 'work_order') {
             $data['notat_om_aktivitet_i_service_bridge'] = sprintf(
                 '%s, %s, %s',
                     $latest_job['data']->WorkOrderNumber,
@@ -289,9 +301,6 @@ class HubSpotSyncCommand extends Command
                     $latest_job['data']->Description ?? ''
             );
         } else {
-            $data['job_status_in_service_bridge'] = 'Estimate';
-            $data['status_from_sb'] = $this->get_status_of_estimate_for_hs($job->Status);
-            $data['lifecyclestage'] = count($job->EstimateLines ?? []) > 0 ? 'customer' : 'opportunity';
             $data['notat_om_aktivitet_i_service_bridge'] = sprintf(
                 '%s, %s, %s',
                     $latest_job['data']->EstimateNumber,
