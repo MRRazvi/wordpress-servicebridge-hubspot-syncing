@@ -61,8 +61,9 @@ class HubSpotController
             ]);
 
             foreach ($deals->data->deals as $deal) {
-                if (!str_contains($deal->properties->dealname->value, sprintf('EST %s', $estimate_number)))
+                if (!str_contains($deal->properties->dealname->value, $estimate_number)) {
                     continue;
+                }
 
                 return $deal;
             }

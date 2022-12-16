@@ -54,7 +54,7 @@ class HubSpotSyncCommand extends Command
                     $hs_contact_id = $hs->create_update_contact($input['input']['email'], $input['input']);
 
                     if ($hs_contact_id) {
-                        $deal = $hs->search_deal($hs_contact_id);
+                        $deal = $hs->search_deal($data->EstimateNumber, $hs_contact_id);
                         if ($deal) {
                             $hs->update_deal(
                                 $deal->dealId,
@@ -80,6 +80,8 @@ class HubSpotSyncCommand extends Command
                                 ]);
                             }
                         }
+
+                        dd("done");
 
                         $estimate->synced = true;
                         $estimate->save();
