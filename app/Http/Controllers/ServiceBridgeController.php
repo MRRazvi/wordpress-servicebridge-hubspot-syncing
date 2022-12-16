@@ -50,7 +50,6 @@ class ServiceBridgeController
 
             $response = json_decode($response->getBody()->getContents());
             $this->session_key = $response->Data;
-
             return $response->Data;
         } catch (\Exception $e) {
             Log::error('sb:login', [
@@ -95,6 +94,12 @@ class ServiceBridgeController
                         foreach ($estimates as $estimate) {
                             $e = Estimate::where('estimate_id', $estimate->Id)->count();
 
+                            if (empty($estimate->Visits)) {
+                                $scheduled_at = $estimate->WonOrLostDate ?? '';
+                            } else {
+                                $scheduled_at = $estimate->Visits[0]->Date ?? '';
+                            }
+
                             if ($e) {
                                 $e = Estimate::where([
                                     'estimate_id' => $estimate->Id,
@@ -109,6 +114,7 @@ class ServiceBridgeController
                                             'status' => $estimate->Status,
                                             'version' => $estimate->Metadata->Version,
                                             'synced' => false,
+                                            'scheduled_at' => $scheduled_at,
                                             'created_at' => $estimate->Metadata->CreatedOn,
                                             'updated_at' => $estimate->Metadata->UpdatedOn
                                         ]);
@@ -122,6 +128,7 @@ class ServiceBridgeController
                                     'status' => $estimate->Status,
                                     'version' => $estimate->Metadata->Version,
                                     'synced' => false,
+                                    'scheduled_at' => $scheduled_at,
                                     'created_at' => $estimate->Metadata->CreatedOn,
                                     'updated_at' => $estimate->Metadata->UpdatedOn
                                 ]);
@@ -281,6 +288,32 @@ class ServiceBridgeController
             return $response->TotalCount;
         } catch (\Exception $e) {
             Log::channel('sb-sync')->error('get_work_orders_count', [
+                'code' => $e->getCode(),
+                'file' => $e->getFile(),
+                'message' => $e->getMessage()
+            ]);
+        }
+    }
+
+    public function get_estimates_by_customer($customer_id)
+    {
+        try {
+            $response = $this->client->request(
+                'GET',
+                sprintf('%s/Estimates', $this->base_url),
+                [
+                    'query' => [
+                        'sessionKey' => $this->session_key,
+                        'customerFilter' => $customer_id,
+                        'pageSize' => 500
+                    ]
+                ]
+            );
+
+            $response = json_decode($response->getBody()->getContents());
+            return $response->Data;
+        } catch (\Exception $e) {
+            Log::channel('hs-sync')->error('get_estimates_by_customer', [
                 'code' => $e->getCode(),
                 'file' => $e->getFile(),
                 'message' => $e->getMessage()

@@ -16,6 +16,7 @@ return new class extends Migration {
             $table->string('status');
             $table->integer('version')->nullable();
             $table->boolean('synced')->default(false);
+            $table->timestamp('scheduled_at')->nullable();
             $table->timestamps();
         });
     }
