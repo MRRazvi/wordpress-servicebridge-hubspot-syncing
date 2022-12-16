@@ -92,6 +92,9 @@ class ServiceBridgeController
                         $estimates = $response->Data;
 
                         foreach ($estimates as $estimate) {
+                            if (empty($estimate->Contact->Email))
+                                continue;
+
                             $e = Estimate::where('estimate_id', $estimate->Id)->count();
 
                             if (empty($estimate->Visits)) {
@@ -107,20 +110,24 @@ class ServiceBridgeController
                                 ])->count();
 
                                 if ($e == 0) {
-                                    Estimate::where('estimate_id', $estimate->Id)
-                                        ->update([
-                                            'customer_id' => $estimate->Customer->Id,
-                                            'email' => $estimate->Contact->Email,
-                                            'status' => $estimate->Status,
-                                            'version' => $estimate->Metadata->Version,
-                                            'synced' => false,
-                                            'scheduled_at' => $scheduled_at,
-                                            'created_at' => $estimate->Metadata->CreatedOn,
-                                            'updated_at' => $estimate->Metadata->UpdatedOn
-                                        ]);
+                                    $input = [
+                                        'customer_id' => $estimate->Customer->Id,
+                                        'email' => $estimate->Contact->Email,
+                                        'status' => $estimate->Status,
+                                        'version' => $estimate->Metadata->Version,
+                                        'synced' => false,
+                                        'created_at' => $estimate->Metadata->CreatedOn,
+                                        'updated_at' => $estimate->Metadata->UpdatedOn
+                                    ];
+
+                                    if (!empty($scheduled_at)) {
+                                        $input['scheduled_at'] = $scheduled_at;
+                                    }
+
+                                    Estimate::where('estimate_id', $estimate->Id)->update($input);
                                 }
                             } else {
-                                Estimate::create([
+                                $input = [
                                     'estimate_id' => $estimate->Id,
                                     'sb_account_id' => $this->sb_account_id,
                                     'customer_id' => $estimate->Customer->Id,
@@ -128,10 +135,15 @@ class ServiceBridgeController
                                     'status' => $estimate->Status,
                                     'version' => $estimate->Metadata->Version,
                                     'synced' => false,
-                                    'scheduled_at' => $scheduled_at,
                                     'created_at' => $estimate->Metadata->CreatedOn,
                                     'updated_at' => $estimate->Metadata->UpdatedOn
-                                ]);
+                                ];
+
+                                if (!empty($scheduled_at)) {
+                                    $input['scheduled_at'] = $scheduled_at;
+                                }
+
+                                Estimate::create($input);
                             }
                         }
 
@@ -212,7 +224,16 @@ class ServiceBridgeController
                     $work_orders = $response->Data;
 
                     foreach ($work_orders as $work_order) {
+                        if (empty($work_order->Contact->Email))
+                            continue;
+
                         $wo = WorkOrder::where('work_order_id', $work_order->Id)->count();
+
+                        if (empty($work_order->Visits)) {
+                            $scheduled_at = $work_order->WonOrLostDate ?? '';
+                        } else {
+                            $scheduled_at = $work_order->Visits[0]->Date ?? '';
+                        }
 
                         if ($wo) {
                             $wo = WorkOrder::where([
@@ -221,19 +242,24 @@ class ServiceBridgeController
                             ])->count();
 
                             if ($wo == 0) {
-                                WorkOrder::where('work_order_id', $work_order->Id)
-                                    ->update([
-                                        'customer_id' => $work_order->Customer->Id,
-                                        'email' => $work_order->Contact->Email,
-                                        'status' => $work_order->Status,
-                                        'version' => $work_order->Metadata->Version,
-                                        'synced' => false,
-                                        'created_at' => $work_order->Metadata->CreatedOn,
-                                        'updated_at' => $work_order->Metadata->UpdatedOn
-                                    ]);
+                                $input = [
+                                    'customer_id' => $work_order->Customer->Id,
+                                    'email' => $work_order->Contact->Email,
+                                    'status' => $work_order->Status,
+                                    'version' => $work_order->Metadata->Version,
+                                    'synced' => false,
+                                    'created_at' => $work_order->Metadata->CreatedOn,
+                                    'updated_at' => $work_order->Metadata->UpdatedOn
+                                ];
+
+                                if (!empty($scheduled_at)) {
+                                    $input['scheduled_at'] = $scheduled_at;
+                                }
+
+                                WorkOrder::where('work_order_id', $work_order->Id)->update($input);
                             }
                         } else {
-                            WorkOrder::create([
+                            $input = [
                                 'work_order_id' => $work_order->Id,
                                 'sb_account_id' => $this->sb_account_id,
                                 'customer_id' => $work_order->Customer->Id,
@@ -243,7 +269,13 @@ class ServiceBridgeController
                                 'synced' => false,
                                 'created_at' => $work_order->Metadata->CreatedOn,
                                 'updated_at' => $work_order->Metadata->UpdatedOn
-                            ]);
+                            ];
+
+                            if (!empty($scheduled_at)) {
+                                $input['scheduled_at'] = $scheduled_at;
+                            }
+
+                            WorkOrder::create($input);
                         }
                     }
 

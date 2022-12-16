@@ -53,7 +53,7 @@ class HubSpotSyncCommand extends Command
                     $customer = $sb->get_customer($job->Customer->Id);
                     $contact = $sb->get_contact($job->Contact->Id);
                     $location = $sb->get_location($job->Location->Id);
-                    $latest_job = $this->get_latest_job($customer->DefaultServiceLocation->PrimaryContact->Email, $sb);
+                    $latest_job = $this->get_latest_job($customer->Id, $sb);
                     $contact_input = $this->get_contact_input($job, $contact, $location, $customer, $latest_job, $owners);
                     $hs_contact_id = $hs->create_update_contact($job->Contact->Email, $contact_input);
 
@@ -303,10 +303,10 @@ class HubSpotSyncCommand extends Command
         return $data;
     }
 
-    private function get_latest_job($email, $sb)
+    private function get_latest_job($customer, $sb)
     {
-        $db_estimates = Estimate::where('email', $email)->orderBy('created_at', 'desc');
-        $db_work_orders = WorkOrder::where('email', $email)->orderBy('created_at', 'desc');
+        $db_estimates = Estimate::where('customer_id', $customer)->orderBy('created_at', 'desc');
+        $db_work_orders = WorkOrder::where('customer_id', $customer)->orderBy('created_at', 'desc');
 
         if ($db_work_orders->count()) {
             if ($db_estimates->first()->created_at->valueOf() < $db_work_orders->first()->created_at->valueOf()) {

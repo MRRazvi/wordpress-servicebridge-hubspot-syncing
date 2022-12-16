@@ -11,9 +11,9 @@ return new class extends Migration {
             $table->id();
             $table->integer('sb_account_id');
             $table->string('estimate_id')->unique();
-            $table->string('customer_id')->unique();
+            $table->string('customer_id');
             $table->string('email');
-            $table->string('status');
+            $table->string('status')->nullable();
             $table->integer('version')->nullable();
             $table->boolean('synced')->default(false);
             $table->timestamp('scheduled_at')->nullable();
