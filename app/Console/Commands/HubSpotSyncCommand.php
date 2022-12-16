@@ -67,18 +67,16 @@ class HubSpotSyncCommand extends Command
                                 ]
                             );
                         } else {
-                            if (isset($data->EstimateLines)) {
-                                $hs->create_deal($hs_contact_id, [
-                                    'dealname' => $input['deal_name'],
-                                    'amount' => $this->get_estimate_deal_price($data),
-                                    'dealstage' => $this->get_deal_stage($data->Status),
-                                    'pipeline' => 'default',
-                                    'dealtype' => 'newbusiness',
-                                    'closedate' => now()->addDays(14)->valueOf(),
-                                    'kilde' => $this->get_marketing_campaign($data->MarketingCampaign->Name ?? ''),
-                                    'hubspot_owner_id' => empty($data->SalesRepresentative->Name) ? '' : $owners[$data->SalesRepresentative->Name]
-                                ]);
-                            }
+                            $hs->create_deal($hs_contact_id, [
+                                'dealname' => $input['deal_name'],
+                                'amount' => $this->get_estimate_deal_price($data),
+                                'dealstage' => $this->get_deal_stage($data->Status),
+                                'pipeline' => 'default',
+                                'dealtype' => 'newbusiness',
+                                'closedate' => now()->addDays(14)->valueOf(),
+                                'kilde' => $this->get_marketing_campaign($data->MarketingCampaign->Name ?? ''),
+                                'hubspot_owner_id' => empty($data->SalesRepresentative->Name) ? '' : $owners[$data->SalesRepresentative->Name]
+                            ]);
                         }
 
                         dd("done");

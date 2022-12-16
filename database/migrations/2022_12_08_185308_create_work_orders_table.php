@@ -11,6 +11,7 @@ return new class extends Migration {
             $table->id();
             $table->integer('sb_account_id');
             $table->string('work_order_id')->unique();
+            $table->string('email');
             $table->string('status');
             $table->integer('version')->nullable();
             $table->boolean('synced')->default(false);
