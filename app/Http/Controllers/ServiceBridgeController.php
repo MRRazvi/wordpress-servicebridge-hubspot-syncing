@@ -105,6 +105,7 @@ class ServiceBridgeController
                                 if ($e == 0) {
                                     Estimate::where('estimate_id', $estimate->Id)
                                         ->update([
+                                            'email' => $estimate->Contact->Email,
                                             'status' => $estimate->Status,
                                             'version' => $estimate->Metadata->Version,
                                             'synced' => false,
@@ -116,6 +117,7 @@ class ServiceBridgeController
                                 Estimate::create([
                                     'estimate_id' => $estimate->Id,
                                     'sb_account_id' => $this->sb_account_id,
+                                    'email' => $estimate->Contact->Email,
                                     'status' => $estimate->Status,
                                     'version' => $estimate->Metadata->Version,
                                     'synced' => false,
@@ -214,6 +216,7 @@ class ServiceBridgeController
                             if ($wo == 0) {
                                 WorkOrder::where('work_order_id', $work_order->Id)
                                     ->update([
+                                        'email' => $work_order->Contact->Email,
                                         'status' => $work_order->Status,
                                         'version' => $work_order->Metadata->Version,
                                         'synced' => false,
@@ -225,6 +228,7 @@ class ServiceBridgeController
                             WorkOrder::create([
                                 'work_order_id' => $work_order->Id,
                                 'sb_account_id' => $this->sb_account_id,
+                                'email' => $work_order->Contact->Email,
                                 'status' => $work_order->Status,
                                 'version' => $work_order->Metadata->Version,
                                 'synced' => false,
