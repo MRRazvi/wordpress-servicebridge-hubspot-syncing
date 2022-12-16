@@ -53,7 +53,7 @@ class HubSpotSyncCommand extends Command
                     $customer = $sb->get_customer($job->Customer->Id);
                     $contact = $sb->get_contact($job->Contact->Id);
                     $location = $sb->get_location($job->Location->Id);
-                    $latest_job = $this->get_latest_job($job->Contact->Email, $sb);
+                    $latest_job = $this->get_latest_job($customer->DefaultServiceLocation->PrimaryContact->Email, $sb);
                     $contact_input = $this->get_contact_input($job, $contact, $location, $customer, $latest_job, $owners);
                     $hs_contact_id = $hs->create_update_contact($job->Contact->Email, $contact_input);
 
@@ -137,7 +137,7 @@ class HubSpotSyncCommand extends Command
                     $customer = $sb->get_customer($job->Customer->Id);
                     $contact = $sb->get_contact($job->Contact->Id);
                     $location = $sb->get_location($job->Location->Id);
-                    $latest_job = $this->get_latest_job($job->Contact->Email, $sb);
+                    $latest_job = $this->get_latest_job($customer->DefaultServiceLocation->PrimaryContact->Email, $sb);
                     $contact_input = $this->get_contact_input($job, $contact, $location, $customer, $latest_job, $owners);
                     $hs_contact_id = $hs->create_update_contact($job->Contact->Email, $contact_input);
 
