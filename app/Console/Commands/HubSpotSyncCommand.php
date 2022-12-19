@@ -9,6 +9,7 @@ use App\Models\HubSpotOwner;
 use App\Models\ServiceBridgeAccount;
 use App\Models\WorkOrder;
 use Illuminate\Console\Command;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
 
 class HubSpotSyncCommand extends Command
@@ -66,28 +67,30 @@ class HubSpotSyncCommand extends Command
                                 $latest_job['data']->Description ?? ''
                         );
 
-                        if ($deal) {
-                            $hs->update_deal(
-                                $deal->dealId,
-                                [
-                                    'dealname' => $deal_name,
-                                    'amount' => $this->get_estimate_deal_price($job),
-                                    'dealstage' => $this->get_deal_stage($job->Status),
-                                    'kilde' => $this->get_marketing_campaign($job->MarketingCampaign->Name ?? ''),
-                                    'hubspot_owner_id' => empty($job->SalesRepresentative->Name) ? '' : $owners[$job->SalesRepresentative->Name]
-                                ]
-                            );
+                        if (empty($job->Visits)) {
+                            $scheduled_at = $job->WonOrLostDate ?? '';
                         } else {
-                            $hs->create_deal($hs_contact_id, [
-                                'dealname' => $deal_name,
-                                'amount' => $this->get_estimate_deal_price($job),
-                                'dealstage' => $this->get_deal_stage($job->Status),
-                                'pipeline' => 'default',
-                                'dealtype' => 'newbusiness',
-                                'closedate' => now()->addDays(14)->valueOf(),
-                                'kilde' => $this->get_marketing_campaign($job->MarketingCampaign->Name ?? ''),
-                                'hubspot_owner_id' => empty($job->SalesRepresentative->Name) ? '' : $owners[$job->SalesRepresentative->Name]
-                            ]);
+                            $scheduled_at = $job->Visits[0]->Date ?? '';
+                        }
+
+                        $deal_input = [
+                            'dealname' => $deal_name,
+                            'amount' => $this->get_estimate_deal_price($job),
+                            'dealstage' => $this->get_deal_stage($job->Status),
+                            'pipeline' => 'default',
+                            'dealtype' => 'newbusiness',
+                            'kilde' => $this->get_marketing_campaign($job->MarketingCampaign->Name ?? ''),
+                            'hubspot_owner_id' => empty($job->SalesRepresentative->Name) ? '' : $owners[$job->SalesRepresentative->Name] ?? ''
+                        ];
+
+                        if ($scheduled_at) {
+                            $deal_input['closedate'] = Carbon::parse($scheduled_at)->addDays(14)->valueOf();
+                        }
+
+                        if ($deal) {
+                            $hs->update_deal($deal->dealId, $deal_input);
+                        } else {
+                            $hs->create_deal($hs_contact_id, $deal_input);
                         }
 
                         $estimate->synced = true;
@@ -278,7 +281,7 @@ class HubSpotSyncCommand extends Command
             'city' => $location->City,
             'zip' => $location->PostalCode,
             'company' => empty($customer->CompanyName) ? $customer->DisplayName : $customer->CompanyName,
-            'hubspot_owner_id' => empty($job->SalesRepresentative->Name) ? '' : $owners[$job->SalesRepresentative->Name],
+            'hubspot_owner_id' => empty($job->SalesRepresentative->Name) ? '' : $owners[$job->SalesRepresentative->Name] ?? '',
             'job_date_in_service_bridge' => $scheduled_at,
             'customer_type' => $customer->CustomerType ?? ''
         ];
