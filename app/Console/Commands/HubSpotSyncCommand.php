@@ -58,6 +58,9 @@ class HubSpotSyncCommand extends Command
                     $contact = $sb->get_contact($job->Contact->Id);
                     $location = $sb->get_location($job->Location->Id);
                     $latest_job = $this->get_latest_job($customer->Id, $sb);
+                    if ($latest_job == false)
+                        continue;
+
                     $contact_input = $this->get_contact_input($job, $contact, $location, $customer, $latest_job, $owners);
                     $hs_contact_id = $hs->create_update_contact($job->Contact->Email, $contact_input);
 
@@ -147,6 +150,9 @@ class HubSpotSyncCommand extends Command
                     $contact = $sb->get_contact($job->Contact->Id);
                     $location = $sb->get_location($job->Location->Id);
                     $latest_job = $this->get_latest_job($customer->Id, $sb);
+                    if ($latest_job == false)
+                        continue;
+
                     $contact_input = $this->get_contact_input($job, $contact, $location, $customer, $latest_job, $owners);
                     $hs_contact_id = $hs->create_update_contact($job->Contact->Email, $contact_input);
 
@@ -331,7 +337,10 @@ class HubSpotSyncCommand extends Command
 
         if ($db_work_orders->count()) {
             if ($db_estimates->count()) {
-                if ($db_estimates->first()->scheduled_at->valueOf() < $db_work_orders->first()->scheduled_at->valueOf()) {
+                $db_estimate_time = strtotime($db_estimates->first()->scheduled_at);
+                $work_order_time = strtotime($db_work_orders->first()->scheduled_at);
+
+                if ($db_estimate_time < $work_order_time) {
                     return [
                         'type' => 'work_order',
                         'data' => $sb->get_work_order($db_work_orders->first()->work_order_id)
@@ -342,12 +351,19 @@ class HubSpotSyncCommand extends Command
                         'data' => $sb->get_estimate($db_estimates->first()->estimate_id)
                     ];
                 }
+            } else {
+                return [
+                    'type' => 'work_order',
+                    'data' => $sb->get_work_order($db_work_orders->first()->work_order_id)
+                ];
             }
+        } else if ($db_estimates->count()) {
+            return [
+                'type' => 'estimate',
+                'data' => $sb->get_estimate($db_estimates->first()->estimate_id)
+            ];
         }
 
-        return [
-            'type' => 'estimate',
-            'data' => $sb->get_estimate($db_estimates->first()->estimate_id)
-        ];
+        return false;
     }
 }
