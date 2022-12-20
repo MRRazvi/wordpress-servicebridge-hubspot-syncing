@@ -73,6 +73,10 @@ php artisan hs:sync
 -   In **app/Console/Commands/ServiceBridgeAccountsCommand.php** you need to configure array with your SB accounts
     composer install.
 
+## Logs
+
+You can see logs under **storage/logs**, individual for every bot.
+
 ### Author
 
 Mubashir Rasool Razvi  
