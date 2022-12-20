@@ -100,8 +100,9 @@ class HubSpotSyncCommand extends Command
                     }
                 } catch (\Exception $e) {
                     Log::channel('hs-sync')->error('sync_estimates', [
-                        'message' => $e->getMessage(),
-                        'trace' => $e->getLine()
+                        'code' => $e->getCode(),
+                        'file' => $e->getFile(),
+                        'message' => $e->getMessage()
                     ]);
                 }
             }
@@ -319,6 +320,8 @@ class HubSpotSyncCommand extends Command
     {
         $db_estimates = Estimate::where('customer_id', $customer)->orderBy('created_at', 'desc');
         $db_work_orders = WorkOrder::where('customer_id', $customer)->orderBy('created_at', 'desc');
+
+        dd($db_estimates->first());
 
         if ($db_work_orders->count()) {
             if ($db_estimates->first()->created_at->valueOf() < $db_work_orders->first()->created_at->valueOf()) {
