@@ -326,23 +326,23 @@ class HubSpotSyncCommand extends Command
 
     private function get_latest_job($customer, $sb)
     {
-        $db_estimates = Estimate::where('customer_id', $customer)->orderBy('created_at', 'desc');
-        $db_work_orders = WorkOrder::where('customer_id', $customer)->orderBy('created_at', 'desc');
+        $db_estimates = Estimate::where('customer_id', $customer)->orderBy('scheduled_at', 'desc');
+        $db_work_orders = WorkOrder::where('customer_id', $customer)->orderBy('scheduled_at', 'desc');
 
         if ($db_work_orders->count()) {
             if ($db_estimates->count()) {
-                if ($db_estimates->first()->created_at->valueOf() < $db_work_orders->first()->created_at->valueOf()) {
+                if ($db_estimates->first()->scheduled_at->valueOf() < $db_work_orders->first()->scheduled_at->valueOf()) {
                     return [
                         'type' => 'work_order',
                         'data' => $sb->get_work_order($db_work_orders->first()->work_order_id)
                     ];
+                } else {
+                    return [
+                        'type' => 'estimate',
+                        'data' => $sb->get_estimate($db_estimates->first()->estimate_id)
+                    ];
                 }
             }
-
-            return [
-                'type' => 'work_order',
-                'data' => $sb->get_work_order($db_work_orders->first()->work_order_id)
-            ];
         }
 
         return [
