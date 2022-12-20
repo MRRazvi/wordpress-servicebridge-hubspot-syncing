@@ -95,7 +95,7 @@ class ServiceBridgeController
                             if (empty($estimate->Contact->Email))
                                 continue;
 
-                            $e = Estimate::where('estimate_id', $estimate->Id)->count();
+                            $e = Estimate::where('estimate_id', sprintf('%s', $estimate->Id))->count();
 
                             if (empty($estimate->Visits)) {
                                 $scheduled_at = $estimate->WonOrLostDate ?? '';
@@ -105,13 +105,13 @@ class ServiceBridgeController
 
                             if ($e) {
                                 $e = Estimate::where([
-                                    'estimate_id' => $estimate->Id,
+                                    'estimate_id' => sprintf('%s', $estimate->Id),
                                     'version' => $estimate->Metadata->Version
                                 ])->count();
 
                                 if ($e == 0) {
                                     $input = [
-                                        'customer_id' => $estimate->Customer->Id,
+                                        'customer_id' => sprintf('%s', $estimate->Customer->Id),
                                         'email' => $estimate->Contact->Email,
                                         'status' => $estimate->Status,
                                         'version' => $estimate->Metadata->Version,
@@ -124,13 +124,13 @@ class ServiceBridgeController
                                         $input['scheduled_at'] = $scheduled_at;
                                     }
 
-                                    Estimate::where('estimate_id', $estimate->Id)->update($input);
+                                    Estimate::where('estimate_id', sprintf('%s', $estimate->Id))->update($input);
                                 }
                             } else {
                                 $input = [
-                                    'estimate_id' => $estimate->Id,
+                                    'estimate_id' => sprintf('%s', $estimate->Id),
                                     'sb_account_id' => $this->sb_account_id,
-                                    'customer_id' => $estimate->Customer->Id,
+                                    'customer_id' => sprintf('%s', $estimate->Customer->Id),
                                     'email' => $estimate->Contact->Email,
                                     'status' => $estimate->Status,
                                     'version' => $estimate->Metadata->Version,
@@ -227,7 +227,7 @@ class ServiceBridgeController
                         if (empty($work_order->Contact->Email))
                             continue;
 
-                        $wo = WorkOrder::where('work_order_id', $work_order->Id)->count();
+                        $wo = WorkOrder::where('work_order_id', sprintf('%s', $work_order->Id))->count();
 
                         if (empty($work_order->Visits)) {
                             $scheduled_at = $work_order->WonOrLostDate ?? '';
@@ -237,13 +237,13 @@ class ServiceBridgeController
 
                         if ($wo) {
                             $wo = WorkOrder::where([
-                                'work_order_id' => $work_order->Id,
+                                'work_order_id' => sprintf('%s', $work_order->Id),
                                 'version' => $work_order->Metadata->Version
                             ])->count();
 
                             if ($wo == 0) {
                                 $input = [
-                                    'customer_id' => $work_order->Customer->Id,
+                                    'customer_id' => sprintf('%s', $work_order->Customer->Id),
                                     'email' => $work_order->Contact->Email,
                                     'status' => $work_order->Status,
                                     'version' => $work_order->Metadata->Version,
@@ -256,13 +256,13 @@ class ServiceBridgeController
                                     $input['scheduled_at'] = $scheduled_at;
                                 }
 
-                                WorkOrder::where('work_order_id', $work_order->Id)->update($input);
+                                WorkOrder::where('work_order_id', sprintf('%s', $work_order->Id))->update($input);
                             }
                         } else {
                             $input = [
-                                'work_order_id' => $work_order->Id,
+                                'work_order_id' => sprintf('%s', $work_order->Id),
                                 'sb_account_id' => $this->sb_account_id,
-                                'customer_id' => $work_order->Customer->Id,
+                                'customer_id' => sprintf('%s', $work_order->Customer->Id),
                                 'email' => $work_order->Contact->Email,
                                 'status' => $work_order->Status,
                                 'version' => $work_order->Metadata->Version,
