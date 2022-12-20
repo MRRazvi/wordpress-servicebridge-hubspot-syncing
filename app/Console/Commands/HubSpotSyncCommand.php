@@ -36,12 +36,15 @@ class HubSpotSyncCommand extends Command
         Log::channel('hs-sync')->info('sync_estimates:start');
 
         try {
-            $estimates = Estimate::where('synced', false)->orderBy('created_at', 'asc')->get();
+            $estimates = Estimate::where('synced', false)->where('tries', '<=', 3)->orderBy('created_at', 'asc')->get();
             $owners = $this->get_sales_representatives();
             Log::channel('hs-sync')->info('count', ['count' => $estimates->count()]);
 
             foreach ($estimates as $estimate) {
                 try {
+                    $estimate->increment('tries');
+                    $estimate->save();
+
                     $sb = $sb_accounts[$estimate->sb_account_id];
                     $job = $sb->get_estimate($estimate->estimate_id);
 
@@ -122,12 +125,15 @@ class HubSpotSyncCommand extends Command
         Log::channel('hs-sync')->info('sync_work_orders:start');
 
         try {
-            $work_orders = WorkOrder::where('synced', false)->orderBy('created_at', 'asc')->get();
+            $work_orders = WorkOrder::where('synced', false)->where('tries', '<=', 3)->orderBy('created_at', 'asc')->get();
             $owners = $this->get_sales_representatives();
             Log::channel('hs-sync')->info('count', ['count' => $work_orders->count()]);
 
             foreach ($work_orders as $work_order) {
                 try {
+                    $work_order->increment('tries');
+                    $work_order->save();
+
                     $sb = $sb_accounts[$work_order->sb_account_id];
                     $job = $sb->get_work_order($work_order->work_order_id);
 
@@ -154,6 +160,7 @@ class HubSpotSyncCommand extends Command
                     Log::channel('hs-sync')->error('sync_work_orders', [
                         'code' => $e->getCode(),
                         'file' => $e->getFile(),
+                        'line' => $e->getLine(),
                         'message' => $e->getMessage()
                     ]);
                 }
@@ -162,6 +169,7 @@ class HubSpotSyncCommand extends Command
             Log::channel('hs-sync')->error('sync_work_orders', [
                 'code' => $e->getCode(),
                 'file' => $e->getFile(),
+                'line' => $e->getLine(),
                 'message' => $e->getMessage()
             ]);
         }
@@ -321,15 +329,20 @@ class HubSpotSyncCommand extends Command
         $db_estimates = Estimate::where('customer_id', $customer)->orderBy('created_at', 'desc');
         $db_work_orders = WorkOrder::where('customer_id', $customer)->orderBy('created_at', 'desc');
 
-        dd($db_estimates->first());
-
         if ($db_work_orders->count()) {
-            if ($db_estimates->first()->created_at->valueOf() < $db_work_orders->first()->created_at->valueOf()) {
-                return [
-                    'type' => 'work_order',
-                    'data' => $sb->get_work_order($db_work_orders->first()->work_order_id)
-                ];
+            if ($db_estimates->count()) {
+                if ($db_estimates->first()->created_at->valueOf() < $db_work_orders->first()->created_at->valueOf()) {
+                    return [
+                        'type' => 'work_order',
+                        'data' => $sb->get_work_order($db_work_orders->first()->work_order_id)
+                    ];
+                }
             }
+
+            return [
+                'type' => 'work_order',
+                'data' => $sb->get_work_order($db_work_orders->first()->work_order_id)
+            ];
         }
 
         return [
