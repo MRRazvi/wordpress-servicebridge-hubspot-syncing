@@ -26,7 +26,7 @@ class HubSpotSyncCommand extends Command
         $sb_accounts = $this->get_sb_accounts();
 
         $this->sync_estimates($hs, $sb_accounts);
-        $this->sync_work_orders($hs, $sb_accounts);
+        // $this->sync_work_orders($hs, $sb_accounts);
 
         Log::channel('hs-sync')->info('end');
     }
