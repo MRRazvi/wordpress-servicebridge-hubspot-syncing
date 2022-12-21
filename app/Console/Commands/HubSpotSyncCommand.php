@@ -36,7 +36,8 @@ class HubSpotSyncCommand extends Command
         Log::channel('hs-sync')->info('sync_estimates:start');
 
         try {
-            $estimates = Estimate::where('synced', false)->where('tries', '<=', 3)->orderBy('created_at', 'asc')->get();
+            // $estimates = Estimate::where('synced', false)->where('tries', '<=', 3)->orderBy('created_at', 'asc')->get();
+            $estimates = Estimate::where('estimate_id', '6003386337')->get();
             $owners = $this->get_sales_representatives();
             Log::channel('hs-sync')->info('count', ['count' => $estimates->count()]);
 
@@ -59,18 +60,18 @@ class HubSpotSyncCommand extends Command
                     if ($latest_job == false)
                         continue;
 
-                    $contact = $sb->get_contact($job->Contact->Id);
+                    $contact = $sb->get_contact($latest_job['data']->Contact->Id);
                     $location = $sb->get_location($latest_job['data']->Location->Id);
                     $contact_input = $this->get_contact_input($job, $contact, $location, $customer, $latest_job, $owners);
-                    $hs_contact_id = $hs->create_update_contact($job->Contact->Email, $contact_input);
+                    $hs_contact_id = $hs->create_update_contact($latest_job['data']->Contact->Email, $contact_input);
 
                     if ($hs_contact_id) {
                         $deal = $hs->search_deal($job->EstimateNumber, $hs_contact_id, $estimate->tries);
                         $deal_name = sprintf(
                             '%s, %s, %s',
                             $job->EstimateNumber,
-                            $customer->DefaultServiceLocation->AddressLine1 ?? '',
-                                $latest_job['data']->Description ?? ''
+                            $job->Location->Name ?? '',
+                            $job->Description ?? ''
                         );
 
                         if (empty($job->Visits)) {
@@ -151,10 +152,10 @@ class HubSpotSyncCommand extends Command
                     if ($latest_job == false)
                         continue;
 
-                    $contact = $sb->get_contact($job->Contact->Id);
+                    $contact = $sb->get_contact($latest_job['data']->Contact->Id);
                     $location = $sb->get_location($latest_job['data']->Location->Id);
                     $contact_input = $this->get_contact_input($job, $contact, $location, $customer, $latest_job, $owners, 'work_order');
-                    $hs_contact_id = $hs->create_update_contact($job->Contact->Email, $contact_input);
+                    $hs_contact_id = $hs->create_update_contact($latest_job['data']->Contact->Email, $contact_input);
 
                     if ($hs_contact_id) {
                         $work_order->synced = true;
@@ -226,9 +227,9 @@ class HubSpotSyncCommand extends Command
     private function get_status_of_work_order_for_hs($work_order)
     {
         if (preg_match('/-/mui', $work_order))
-            return 'Single job';
+            return 'Recurring job';
 
-        return 'Recurring job';
+        return 'Single job';
     }
 
     private function get_estimate_deal_price($estimate)
@@ -281,10 +282,10 @@ class HubSpotSyncCommand extends Command
 
     private function get_contact_input($job, $contact, $location, $customer, $latest_job, $owners, $type = 'estimates')
     {
-        if (empty($job->Visits)) {
-            $scheduled_at = strtotime($job->WonOrLostDate) * 1000 ?? '';
+        if (empty($latest_job['data']->Visits)) {
+            $scheduled_at = strtotime($latest_job['data']->WonOrLostDate) * 1000 ?? '';
         } else {
-            $scheduled_at = strtotime($job->Visits[0]->Date) * 1000 ?? '';
+            $scheduled_at = strtotime($latest_job['data']->Visits[0]->Date) * 1000 ?? '';
         }
 
         $data = [
@@ -296,33 +297,33 @@ class HubSpotSyncCommand extends Command
             'city' => $location->City,
             'zip' => $location->PostalCode,
             'company' => empty($customer->CompanyName) ? $customer->DisplayName : $customer->CompanyName,
-            'hubspot_owner_id' => empty($job->SalesRepresentative->Name) ? '' : $owners[$job->SalesRepresentative->Name] ?? '',
+            'hubspot_owner_id' => empty($latest_job['data']->SalesRepresentative->Name) ? '' : $owners[$latest_job['data']->SalesRepresentative->Name] ?? '',
             'job_date_in_service_bridge' => $scheduled_at,
             'customer_type' => $customer->CustomerType ?? ''
         ];
 
         if ($type == 'work_order') {
             $data['status_from_sb'] = 'WO Recurring';
-            $data['job_status_in_service_bridge'] = $this->get_status_of_work_order_for_hs($job->WorkOrderNumber);
-            $data['lifecyclestage'] = count($job->WorkWorderLines ?? []) > 0 ? 'customer' : 'opportunity';
+            $data['job_status_in_service_bridge'] = $this->get_status_of_work_order_for_hs($latest_job['data']->WorkOrderNumber);
+            $data['lifecyclestage'] = count($latest_job['data']->WorkWorderLines ?? []) > 0 ? 'customer' : 'opportunity';
         } else {
             $data['job_status_in_service_bridge'] = 'Estimate';
-            $data['status_from_sb'] = $this->get_status_of_estimate_for_hs($job->Status);
-            $data['lifecyclestage'] = count($job->EstimateLines ?? []) > 0 ? 'customer' : 'opportunity';
+            $data['status_from_sb'] = $this->get_status_of_estimate_for_hs($latest_job['data']->Status);
+            $data['lifecyclestage'] = count($latest_job['data']->EstimateLines ?? []) > 0 ? 'customer' : 'opportunity';
         }
 
         if ($latest_job['type'] == 'work_order') {
             $data['notat_om_aktivitet_i_service_bridge'] = sprintf(
                 '%s, %s, %s',
                     $latest_job['data']->WorkOrderNumber,
-                $customer->DefaultServiceLocation->AddressLine1 ?? '',
+                    $latest_job['data']->Location->Name ?? '',
                     $latest_job['data']->Description ?? ''
             );
         } else {
             $data['notat_om_aktivitet_i_service_bridge'] = sprintf(
                 '%s, %s, %s',
                     $latest_job['data']->EstimateNumber,
-                $customer->DefaultServiceLocation->AddressLine1 ?? '',
+                    $latest_job['data']->Location->Name ?? '',
                     $latest_job['data']->Description ?? ''
             );
         }
