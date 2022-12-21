@@ -36,8 +36,7 @@ class HubSpotSyncCommand extends Command
         Log::channel('hs-sync')->info('sync_estimates:start');
 
         try {
-            // $estimates = Estimate::where('synced', false)->where('tries', '<=', 3)->orderBy('created_at', 'asc')->get();
-            $estimates = Estimate::where('estimate_id', '6003386337')->get();
+            $estimates = Estimate::where('synced', false)->where('tries', '<=', 3)->orderBy('created_at', 'asc')->get();
             $owners = $this->get_sales_representatives();
             Log::channel('hs-sync')->info('count', ['count' => $estimates->count()]);
 
