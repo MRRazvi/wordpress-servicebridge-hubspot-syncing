@@ -60,7 +60,7 @@ class HubSpotSyncCommand extends Command
                         continue;
 
                     $contact = $sb->get_contact($job->Contact->Id);
-                    $location = $sb->get_location($job->Location->Id);
+                    $location = $sb->get_location($latest_job['data']->Location->Id);
                     $contact_input = $this->get_contact_input($job, $contact, $location, $customer, $latest_job, $owners);
                     $hs_contact_id = $hs->create_update_contact($job->Contact->Email, $contact_input);
 
