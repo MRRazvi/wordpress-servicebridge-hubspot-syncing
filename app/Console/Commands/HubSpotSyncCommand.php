@@ -26,7 +26,7 @@ class HubSpotSyncCommand extends Command
         $sb_accounts = $this->get_sb_accounts();
 
         $this->sync_estimates($hs, $sb_accounts);
-        // $this->sync_work_orders($hs, $sb_accounts);
+        $this->sync_work_orders($hs, $sb_accounts);
 
         Log::channel('hs-sync')->info('end');
     }
@@ -147,12 +147,12 @@ class HubSpotSyncCommand extends Command
                     }
 
                     $customer = $sb->get_customer($job->Customer->Id);
-                    $contact = $sb->get_contact($job->Contact->Id);
-                    $location = $sb->get_location($job->Location->Id);
                     $latest_job = $this->get_latest_job($customer->Id, $sb);
                     if ($latest_job == false)
                         continue;
 
+                    $contact = $sb->get_contact($job->Contact->Id);
+                    $location = $sb->get_location($latest_job['data']->Location->Id);
                     $contact_input = $this->get_contact_input($job, $contact, $location, $customer, $latest_job, $owners, 'work_order');
                     $hs_contact_id = $hs->create_update_contact($job->Contact->Email, $contact_input);
 
