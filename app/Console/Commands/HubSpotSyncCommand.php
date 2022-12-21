@@ -55,17 +55,17 @@ class HubSpotSyncCommand extends Command
                     }
 
                     $customer = $sb->get_customer($job->Customer->Id);
-                    $contact = $sb->get_contact($job->Contact->Id);
-                    $location = $sb->get_location($job->Location->Id);
                     $latest_job = $this->get_latest_job($customer->Id, $sb);
                     if ($latest_job == false)
                         continue;
 
+                    $contact = $sb->get_contact($job->Contact->Id);
+                    $location = $sb->get_location($job->Location->Id);
                     $contact_input = $this->get_contact_input($job, $contact, $location, $customer, $latest_job, $owners);
                     $hs_contact_id = $hs->create_update_contact($job->Contact->Email, $contact_input);
 
                     if ($hs_contact_id) {
-                        $deal = $hs->search_deal($job->EstimateNumber, $hs_contact_id);
+                        $deal = $hs->search_deal($job->EstimateNumber, $hs_contact_id, $estimate->tries);
                         $deal_name = sprintf(
                             '%s, %s, %s',
                             $job->EstimateNumber,
@@ -153,7 +153,7 @@ class HubSpotSyncCommand extends Command
                     if ($latest_job == false)
                         continue;
 
-                    $contact_input = $this->get_contact_input($job, $contact, $location, $customer, $latest_job, $owners);
+                    $contact_input = $this->get_contact_input($job, $contact, $location, $customer, $latest_job, $owners, 'work_order');
                     $hs_contact_id = $hs->create_update_contact($job->Contact->Email, $contact_input);
 
                     if ($hs_contact_id) {
@@ -332,8 +332,8 @@ class HubSpotSyncCommand extends Command
 
     private function get_latest_job($customer, $sb)
     {
-        $db_estimates = Estimate::where('customer_id', $customer)->orderBy('scheduled_at', 'desc');
-        $db_work_orders = WorkOrder::where('customer_id', $customer)->orderBy('scheduled_at', 'desc');
+        $db_estimates = Estimate::where('customer_id', sprintf('%s', $customer))->orderBy('scheduled_at', 'desc');
+        $db_work_orders = WorkOrder::where('customer_id', sprintf('%s', $customer))->orderBy('scheduled_at', 'desc');
 
         if ($db_work_orders->count()) {
             if ($db_estimates->count()) {

@@ -50,7 +50,7 @@ class HubSpotController
         }
     }
 
-    public function search_deal($estimate_number, $contact_id)
+    public function search_deal($estimate_number, $contact_id, $tries)
     {
         try {
             $deals = $this->client->deals()->associatedWithContact($contact_id, [
@@ -59,6 +59,13 @@ class HubSpotController
                     'amount'
                 ]
             ]);
+
+            // delete the deals on first run
+            // if ($tries == 0) {
+            //     foreach ($deals->data->deals as $deal) {
+            //         $this->client->deals()->delete($deal->dealId);
+            //     }
+            // }
 
             foreach ($deals->data->deals as $deal) {
                 if (!str_contains($deal->properties->dealname->value, $estimate_number)) {
