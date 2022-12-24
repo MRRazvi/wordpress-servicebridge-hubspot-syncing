@@ -20,6 +20,7 @@ class HubSpotOwnersCommand extends Command
         try {
             $client = LegacyFactory::create(env('HUBSPOT_API_KEY'));
             $owners = $client->owners()->all()->data;
+            HubSpotOwner::truncate();
 
             Log::channel('hs-owners')->info('count', ['count' => count($owners)]);
 
