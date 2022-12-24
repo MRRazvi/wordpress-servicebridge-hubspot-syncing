@@ -6,6 +6,7 @@
     "license": "MIT",
     "require": {
         "php": "^8.0.2",
+        "accentinteractive/laravel-logcleaner": "^1.1",
         "guzzlehttp/guzzle": "^7.2",
         "hubspot/api-client": "^9.1",
         "hubspot/hubspot-php": "^5.0",

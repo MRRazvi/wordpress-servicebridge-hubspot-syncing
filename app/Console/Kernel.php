@@ -13,7 +13,8 @@ class Kernel extends ConsoleKernel
         $schedule->command('sb:sync')->everyTenMinutes()->withoutOverlapping();
         $schedule->command('hs:sync')->everyFiveMinutes()->withoutOverlapping();
 
-        $schedule->command('telescope:prune --hours=48')->daily();
+        $schedule->command('telescope:prune', ['--hours' => 48])->daily();
+        $schedule->command('logcleaner:run', ['--keeplines' => 5000, '--keepfiles' => 14])->daily();
     }
 
     protected function commands()

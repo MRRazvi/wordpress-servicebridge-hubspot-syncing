@@ -59,9 +59,10 @@ class HubSpotSyncCommand extends Command
                     if ($latest_job == false)
                         continue;
 
-                    $contact = $sb->get_contact($latest_job['data']->Contact->Id);
+                    $contact = $sb->get_contact($job->Contact->Id);
                     $location = $sb->get_location($latest_job['data']->Location->Id);
                     $contact_input = $this->get_contact_input($job, $contact, $location, $customer, $latest_job, $owners);
+
                     $hs_contact_id = $hs->create_update_contact($latest_job['data']->Contact->Email, $contact_input);
 
                     if ($hs_contact_id) {
@@ -151,7 +152,7 @@ class HubSpotSyncCommand extends Command
                     if ($latest_job == false)
                         continue;
 
-                    $contact = $sb->get_contact($latest_job['data']->Contact->Id);
+                    $contact = $sb->get_contact($job->Contact->Id);
                     $location = $sb->get_location($latest_job['data']->Location->Id);
                     $contact_input = $this->get_contact_input($job, $contact, $location, $customer, $latest_job, $owners, 'work_order');
                     $hs_contact_id = $hs->create_update_contact($latest_job['data']->Contact->Email, $contact_input);
