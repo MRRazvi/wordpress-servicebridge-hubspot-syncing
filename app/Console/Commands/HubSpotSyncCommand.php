@@ -112,8 +112,6 @@ class HubSpotSyncCommand extends Command
                         $estimate->synced = true;
                         $estimate->save();
 
-                        dd($estimate->estimate_id);
-
                         Log::channel('hs-sync')->info('done', ['id' => $estimate->id, 'estimate' => $estimate->estimate_id]);
                     }
                 } catch (\Exception $e) {
