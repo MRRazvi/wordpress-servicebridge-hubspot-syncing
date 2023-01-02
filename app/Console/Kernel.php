@@ -9,9 +9,9 @@ class Kernel extends ConsoleKernel
 {
     protected function schedule(Schedule $schedule)
     {
-        $schedule->command('hs:owners')->hourly();
-        $schedule->command('sb:sync')->everyTenMinutes();
-        $schedule->command('hs:sync')->everyFiveMinutes();
+        $schedule->command('hs:owners')->hourly()->withoutOverlapping();
+        $schedule->command('sb:sync')->everyTenMinutes()->withoutOverlapping();
+        $schedule->command('hs:sync')->everyFiveMinutes()->withoutOverlapping();
 
         $schedule->command('telescope:prune', ['--hours' => 48])->daily();
         $schedule->command('logcleaner:run', ['--keeplines' => 5000, '--keepfiles' => 14])->daily();
