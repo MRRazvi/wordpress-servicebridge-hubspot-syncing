@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Artisan;
 
 Route::get('/setup', function () {
-    Artisan::call('migrate:fresh');
+    Artisan::call('migrate:fresh --force');
     Artisan::call('sb:accounts');
     Artisan::call('hs:owners');
 });

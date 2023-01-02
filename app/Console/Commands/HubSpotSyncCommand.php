@@ -36,18 +36,18 @@ class HubSpotSyncCommand extends Command
         Log::channel('hs-sync')->info('sync_estimates:start');
 
         try {
-            $estimates = Estimate::where('synced', false)->where('tries', '<=', 3)->orderBy('created_at', 'asc')->get();
+            // $estimates = Estimate::where('synced', false)->where('tries', '<=', 3)->orderBy('created_at', 'asc')->get();
+            $estimates = Estimate::where('estimate_id', '6008852332')->get();
             $owners = $this->get_sales_representatives();
             Log::channel('hs-sync')->info('count', ['count' => $estimates->count()]);
 
             foreach ($estimates as $estimate) {
                 try {
-                    // $estimate->increment('tries');
-                    // $estimate->save();
+                    $estimate->increment('tries');
+                    $estimate->save();
 
                     $sb = $sb_accounts[$estimate->sb_account_id];
                     $job = $sb->get_estimate($estimate->estimate_id);
-                    // $job = $sb->get_estimate(6009156401);
 
                     if ($job->Status != 'Finished' && $job->Status != 'WonEstimate' && $job->Status != 'LostEstimate') {
                         $estimate->synced = true;
@@ -56,19 +56,14 @@ class HubSpotSyncCommand extends Command
                     }
 
                     $customer = $sb->get_customer($job->Customer->Id);
-
-                    dd($job, $customer);
-
-                    $latest_job = $this->get_latest_job($customer->Id, $sb);
+                    $latest_job = $this->get_latest_job($job->Contact->Id, $sb);
                     if ($latest_job == false)
                         continue;
 
                     $contact = $sb->get_contact($job->Contact->Id);
                     $location = $sb->get_location($latest_job['data']->Location->Id);
                     $contact_input = $this->get_contact_input($job, $contact, $location, $customer, $latest_job, $owners);
-
                     $hs_contact_id = $hs->create_update_contact($latest_job['data']->Contact->Email, $contact_input);
-                    dd($contact_input, $job);
 
                     if ($hs_contact_id) {
                         $deal = $hs->search_deal($job->EstimateNumber, $hs_contact_id, $estimate->tries);
@@ -91,9 +86,19 @@ class HubSpotSyncCommand extends Command
                             'dealstage' => $this->get_deal_stage($job->Status),
                             'pipeline' => 'default',
                             'dealtype' => 'newbusiness',
-                            'kilde' => $this->get_marketing_campaign($job->MarketingCampaign->Name ?? ''),
-                            'hubspot_owner_id' => empty($job->SalesRepresentative->Name) ? '' : $owners[$job->SalesRepresentative->Name] ?? ''
+                            'kilde' => $this->get_marketing_campaign($job->MarketingCampaign->Name ?? '')
                         ];
+
+                        // assigned to
+                        if (isset($job->Visits) && !empty($job->Visits)) {
+                            if (isset($job->Visits[0]->Team) && !empty($job->Visits[0]->Team)) {
+                                if (isset($job->Visits[0]->Team->Name) && !empty($job->Visits[0]->Team->Name)) {
+                                    if (!empty($owners[$job->Visits[0]->Team->Name])) {
+                                        $deal_input['hubspot_owner_id'] = $owners[$job->Visits[0]->Team->Name];
+                                    }
+                                }
+                            }
+                        }
 
                         if ($scheduled_at) {
                             $deal_input['closedate'] = Carbon::parse($scheduled_at)->addDays(14)->valueOf();
@@ -317,11 +322,11 @@ class HubSpotSyncCommand extends Command
         }
 
         // assigned to
-        if (isset($job->Visits) && !empty($job->Visits)) {
-            if (isset($job->Visits[0]->Team) && !empty($job->Visits[0]->Team)) {
-                if (isset($job->Visits[0]->Team->Name) && !empty($job->Visits[0]->Team->Name)) {
-                    if (!empty($owners[$job->Visits[0]->Team->Name])) {
-                        $data['hubspot_owner_id'] = $owners[$job->Visits[0]->Team->Name];
+        if (isset($latest_job['data']->Visits) && !empty($latest_job['data']->Visits)) {
+            if (isset($latest_job['data']->Visits[0]->Team) && !empty($latest_job['data']->Visits[0]->Team)) {
+                if (isset($latest_job['data']->Visits[0]->Team->Name) && !empty($latest_job['data']->Visits[0]->Team->Name)) {
+                    if (!empty($owners[$latest_job['data']->Visits[0]->Team->Name])) {
+                        $data['hubspot_owner_id'] = $owners[$latest_job['data']->Visits[0]->Team->Name];
                     }
                 }
             }
@@ -348,10 +353,10 @@ class HubSpotSyncCommand extends Command
         return $data;
     }
 
-    private function get_latest_job($customer, $sb)
+    private function get_latest_job($contact, $sb)
     {
-        $db_estimates = Estimate::where('customer_id', sprintf('%s', $customer))->orderBy('scheduled_at', 'desc');
-        $db_work_orders = WorkOrder::where('customer_id', sprintf('%s', $customer))->orderBy('scheduled_at', 'desc');
+        $db_estimates = Estimate::where('contact_id', sprintf('%s', $contact))->orderBy('scheduled_at', 'desc');
+        $db_work_orders = WorkOrder::where('contact_id', sprintf('%s', $contact))->orderBy('scheduled_at', 'desc');
 
         if ($db_work_orders->count()) {
             if ($db_estimates->count()) {
