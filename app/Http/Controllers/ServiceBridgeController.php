@@ -80,6 +80,7 @@ class ServiceBridgeController
                         'page' => $i,
                         'pageSize' => (env('APP_ENV') == 'local') ? 5 : 500,
                         'includeInventoryInfo' => true,
+                        'includeInactiveCustomers' => true,
                         'statusFilter' => $status
                     ];
 
@@ -180,6 +181,7 @@ class ServiceBridgeController
                         'sessionKey' => $this->session_key,
                         'page' => 1,
                         'pageSize' => 1,
+                        'includeInactiveCustomers' => true,
                         'statusFilter' => $status
                     ]
                 ]
