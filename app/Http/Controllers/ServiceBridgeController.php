@@ -112,6 +112,7 @@ class ServiceBridgeController
 
                                 if ($e == 0) {
                                     $input = [
+                                        'contact_id' => sprintf('%s', $estimate->Contact->Id),
                                         'customer_id' => sprintf('%s', $estimate->Customer->Id),
                                         'email' => $estimate->Contact->Email,
                                         'status' => $estimate->Status,
@@ -131,6 +132,7 @@ class ServiceBridgeController
                                 $input = [
                                     'estimate_id' => sprintf('%s', $estimate->Id),
                                     'sb_account_id' => $this->sb_account_id,
+                                    'contact_id' => sprintf('%s', $estimate->Contact->Id),
                                     'customer_id' => sprintf('%s', $estimate->Customer->Id),
                                     'email' => $estimate->Contact->Email,
                                     'status' => $estimate->Status,
@@ -245,6 +247,7 @@ class ServiceBridgeController
 
                             if ($wo == 0) {
                                 $input = [
+                                    'contact_id' => sprintf('%s', $work_order->Contact->Id),
                                     'customer_id' => sprintf('%s', $work_order->Customer->Id),
                                     'email' => $work_order->Contact->Email,
                                     'status' => $work_order->Status,
@@ -264,6 +267,7 @@ class ServiceBridgeController
                             $input = [
                                 'work_order_id' => sprintf('%s', $work_order->Id),
                                 'sb_account_id' => $this->sb_account_id,
+                                'contact_id' => sprintf('%s', $work_order->Contact->Id),
                                 'customer_id' => sprintf('%s', $work_order->Customer->Id),
                                 'email' => $work_order->Contact->Email,
                                 'status' => $work_order->Status,
