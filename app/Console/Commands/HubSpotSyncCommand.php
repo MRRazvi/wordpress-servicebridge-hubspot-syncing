@@ -159,7 +159,7 @@ class HubSpotSyncCommand extends Command
                     }
 
                     $customer = $sb->get_customer($job->Customer->Id);
-                    $latest_job = $this->get_latest_job($customer->Id, $sb);
+                    $latest_job = $this->get_latest_job($job->Contact->Id, $sb);
                     if ($latest_job == false)
                         continue;
 
