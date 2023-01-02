@@ -5,6 +5,12 @@ use App\Models\WorkOrder;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Artisan;
 
+Route::get('/setup', function () {
+    Artisan::call('migrate:fresh');
+    Artisan::call('sb:accounts');
+    Artisan::call('hs:owners');
+});
+
 Route::get('/sb-sync', function () {
     Artisan::call('sb:sync');
 });

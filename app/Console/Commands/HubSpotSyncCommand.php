@@ -26,7 +26,7 @@ class HubSpotSyncCommand extends Command
         $sb_accounts = $this->get_sb_accounts();
 
         $this->sync_estimates($hs, $sb_accounts);
-        $this->sync_work_orders($hs, $sb_accounts);
+        // $this->sync_work_orders($hs, $sb_accounts);
 
         Log::channel('hs-sync')->info('end');
     }
@@ -42,11 +42,12 @@ class HubSpotSyncCommand extends Command
 
             foreach ($estimates as $estimate) {
                 try {
-                    $estimate->increment('tries');
-                    $estimate->save();
+                    // $estimate->increment('tries');
+                    // $estimate->save();
 
                     $sb = $sb_accounts[$estimate->sb_account_id];
                     $job = $sb->get_estimate($estimate->estimate_id);
+                    // $job = $sb->get_estimate(6009156401);
 
                     if ($job->Status != 'Finished' && $job->Status != 'WonEstimate' && $job->Status != 'LostEstimate') {
                         $estimate->synced = true;
@@ -55,6 +56,9 @@ class HubSpotSyncCommand extends Command
                     }
 
                     $customer = $sb->get_customer($job->Customer->Id);
+
+                    dd($job, $customer);
+
                     $latest_job = $this->get_latest_job($customer->Id, $sb);
                     if ($latest_job == false)
                         continue;
@@ -64,6 +68,7 @@ class HubSpotSyncCommand extends Command
                     $contact_input = $this->get_contact_input($job, $contact, $location, $customer, $latest_job, $owners);
 
                     $hs_contact_id = $hs->create_update_contact($latest_job['data']->Contact->Email, $contact_input);
+                    dd($contact_input, $job);
 
                     if ($hs_contact_id) {
                         $deal = $hs->search_deal($job->EstimateNumber, $hs_contact_id, $estimate->tries);
@@ -297,7 +302,6 @@ class HubSpotSyncCommand extends Command
             'city' => $location->City,
             'zip' => $location->PostalCode,
             'company' => empty($customer->CompanyName) ? $customer->DisplayName : $customer->CompanyName,
-            'hubspot_owner_id' => empty($latest_job['data']->SalesRepresentative->Name) ? '' : $owners[$latest_job['data']->SalesRepresentative->Name] ?? '',
             'job_date_in_service_bridge' => $scheduled_at,
             'customer_type' => $customer->CustomerType ?? ''
         ];
@@ -310,6 +314,17 @@ class HubSpotSyncCommand extends Command
             $data['job_status_in_service_bridge'] = 'Estimate';
             $data['status_from_sb'] = $this->get_status_of_estimate_for_hs($latest_job['data']->Status);
             $data['lifecyclestage'] = count($latest_job['data']->EstimateLines ?? []) > 0 ? 'customer' : 'opportunity';
+        }
+
+        // assigned to
+        if (isset($job->Visits) && !empty($job->Visits)) {
+            if (isset($job->Visits[0]->Team) && !empty($job->Visits[0]->Team)) {
+                if (isset($job->Visits[0]->Team->Name) && !empty($job->Visits[0]->Team->Name)) {
+                    if (!empty($owners[$job->Visits[0]->Team->Name])) {
+                        $data['hubspot_owner_id'] = $owners[$job->Visits[0]->Team->Name];
+                    }
+                }
+            }
         }
 
         if ($latest_job['type'] == 'work_order') {
@@ -327,6 +342,8 @@ class HubSpotSyncCommand extends Command
                     $latest_job['data']->Description ?? ''
             );
         }
+
+        $data['last_synced_at_service_bridge'] = Carbon::now()->startOfDay()->timestamp * 1000;
 
         return $data;
     }
