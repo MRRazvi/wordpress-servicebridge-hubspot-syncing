@@ -362,7 +362,7 @@ class HubSpotSyncCommand extends Command
                 $db_estimate_time = strtotime($db_estimates->first()->scheduled_at);
                 $work_order_time = strtotime($db_work_orders->first()->scheduled_at);
 
-                if ($db_estimate_time < $work_order_time) {
+                if ($db_estimate_time <= $work_order_time) {
                     return [
                         'type' => 'work_order',
                         'data' => $sb->get_work_order($db_work_orders->first()->work_order_id)
