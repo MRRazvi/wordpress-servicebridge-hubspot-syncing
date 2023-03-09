@@ -26,7 +26,7 @@ class HubSpotSyncCommand extends Command
         $sb_accounts = $this->get_sb_accounts();
 
         $this->sync_estimates($hs, $sb_accounts);
-        $this->sync_work_orders($hs, $sb_accounts);
+        // $this->sync_work_orders($hs, $sb_accounts);
 
         Log::channel('hs-sync')->info('end');
     }
@@ -36,7 +36,8 @@ class HubSpotSyncCommand extends Command
         Log::channel('hs-sync')->info('sync_estimates:start');
 
         try {
-            $estimates = Estimate::where('synced', false)->where('tries', '<=', 3)->orderBy('created_at', 'asc')->get();
+            // $estimates = Estimate::where('synced', false)->where('tries', '<=', 3)->orderBy('created_at', 'asc')->get();
+            $estimates = Estimate::where('estimate_id', '6010221422')->get();
             $owners = $this->get_sales_representatives();
             Log::channel('hs-sync')->info('count', ['count' => $estimates->count()]);
 
@@ -62,6 +63,9 @@ class HubSpotSyncCommand extends Command
                     $contact = $sb->get_contact($job->Contact->Id);
                     $location = $sb->get_location($latest_job['data']->Location->Id);
                     $contact_input = $this->get_contact_input($job, $contact, $location, $customer, $latest_job, $owners);
+
+                    dd($contact_input);
+
                     $hs_contact_id = $hs->create_update_contact($latest_job['data']->Contact->Email, $contact_input);
 
                     if ($hs_contact_id) {
