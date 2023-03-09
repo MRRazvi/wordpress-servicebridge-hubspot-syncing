@@ -338,16 +338,16 @@ class HubSpotSyncCommand extends Command
         if ($latest_job['type'] == 'work_order') {
             $data['notat_om_aktivitet_i_service_bridge'] = sprintf(
                 '%s, %s, %s',
-                    $latest_job['data']->WorkOrderNumber,
-                    $latest_job['data']->Location->Name ?? '',
-                    $latest_job['data']->Description ?? ''
+                $latest_job['data']->WorkOrderNumber,
+                $latest_job['data']->Location->Name ?? '',
+                $latest_job['data']->Description ?? ''
             );
         } else {
             $data['notat_om_aktivitet_i_service_bridge'] = sprintf(
                 '%s, %s, %s',
-                    $latest_job['data']->EstimateNumber,
-                    $latest_job['data']->Location->Name ?? '',
-                    $latest_job['data']->Description ?? ''
+                $latest_job['data']->EstimateNumber,
+                $latest_job['data']->Location->Name ?? '',
+                $latest_job['data']->Description ?? ''
             );
         }
 

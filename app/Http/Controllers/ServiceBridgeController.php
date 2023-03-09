@@ -66,7 +66,7 @@ class ServiceBridgeController
 
         try {
             $estimates = [];
-            $statues = ['Finished', 'WonEstimate', 'LostEstimate'];
+            $statues = ['Finished', 'WonEstimate', 'LostEstimate', 'OpenEstimate'];
 
             foreach ($statues as $status) {
                 $total_count = $this->get_estimates_count($status);
