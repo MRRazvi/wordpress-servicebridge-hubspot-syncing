@@ -63,9 +63,7 @@ class HubSpotSyncCommand extends Command
                     $contact = $sb->get_contact($job->Contact->Id);
                     $location = $sb->get_location($latest_job['data']->Location->Id);
                     $contact_input = $this->get_contact_input($job, $contact, $location, $customer, $latest_job, $owners);
-
-                    dd($contact_input);
-
+                    $contact_input['fieldservice_account_name'] = $this->get_sb_account($estimate->sb_account_id);
                     $hs_contact_id = $hs->create_update_contact($latest_job['data']->Contact->Email, $contact_input);
 
                     if ($hs_contact_id) {
@@ -391,5 +389,28 @@ class HubSpotSyncCommand extends Command
         }
 
         return false;
+    }
+
+    private function get_sb_account($id)
+    {
+        if ($id == 1) {
+            return 1;
+        } else if ($id == 2) {
+            return 7;
+        } else if ($id == 3) {
+            return 5;
+        } else if ($id == 4) {
+            return 3;
+        } else if ($id == 5) {
+            return 8;
+        } else if ($id == 6) {
+            return 2;
+        } else if ($id == 7) {
+            return 4;
+        } else if ($id == 8) {
+            return 6;
+        } else {
+            return 1;
+        }
     }
 }
