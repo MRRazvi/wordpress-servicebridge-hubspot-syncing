@@ -106,9 +106,6 @@ class HubSpotSyncCommand extends Command
                             $deal_input['closedate'] = Carbon::parse($scheduled_at)->addDays(14)->valueOf();
                         }
 
-                        $hs->create_deal($hs_contact_id, $deal_input);
-                        dd('stop');
-
                         if ($deal) {
                             $hs->update_deal($deal['id'], $deal_input);
                         } else {
@@ -120,8 +117,6 @@ class HubSpotSyncCommand extends Command
 
                         Log::channel('hs-sync')->info('done', ['id' => $estimate->id, 'estimate' => $estimate->estimate_id]);
                     }
-
-                    dd('done');
                 } catch (\Exception $e) {
                     Log::channel('hs-sync')->error('sync_estimates', [
                         'code' => $e->getCode(),
