@@ -1,6 +1,5 @@
 <?php
 
-use App\Http\Controllers\HubSpotController;
 use App\Models\Estimate;
 use App\Models\WorkOrder;
 use Illuminate\Support\Facades\Route;
