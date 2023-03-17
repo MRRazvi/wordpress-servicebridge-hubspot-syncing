@@ -22,7 +22,7 @@ class HubSpotSyncCommand extends Command
     {
         Log::channel('hs-sync')->info('start');
 
-        $hs = new HubSpotController(env('HUBSPOT_API_KEY'));
+        $hs = new HubSpotController(env('HUBSPOT_ACCESS_TOKEN'));
         $sb_accounts = $this->get_sb_accounts();
 
         $this->sync_estimates($hs, $sb_accounts);
@@ -64,10 +64,12 @@ class HubSpotSyncCommand extends Command
                     $location = $sb->get_location($latest_job['data']->Location->Id);
                     $contact_input = $this->get_contact_input($job, $contact, $location, $customer, $latest_job, $owners);
                     $contact_input['fieldservice_account_name'] = $this->get_sb_account($estimate->sb_account_id);
+
                     $hs_contact_id = $hs->create_update_contact($latest_job['data']->Contact->Email, $contact_input);
 
                     if ($hs_contact_id) {
                         $deal = $hs->search_deal($job->EstimateNumber, $hs_contact_id, $estimate->tries);
+
                         $deal_name = sprintf(
                             '%s, %s, %s',
                             $job->EstimateNumber,
@@ -105,8 +107,11 @@ class HubSpotSyncCommand extends Command
                             $deal_input['closedate'] = Carbon::parse($scheduled_at)->addDays(14)->valueOf();
                         }
 
+                        $hs->create_deal($hs_contact_id, $deal_input);
+                        dd('stop');
+
                         if ($deal) {
-                            $hs->update_deal($deal->dealId, $deal_input);
+                            $hs->update_deal($deal['id'], $deal_input);
                         } else {
                             $hs->create_deal($hs_contact_id, $deal_input);
                         }
@@ -116,6 +121,8 @@ class HubSpotSyncCommand extends Command
 
                         Log::channel('hs-sync')->info('done', ['id' => $estimate->id, 'estimate' => $estimate->estimate_id]);
                     }
+
+                    dd('done');
                 } catch (\Exception $e) {
                     Log::channel('hs-sync')->error('sync_estimates', [
                         'code' => $e->getCode(),

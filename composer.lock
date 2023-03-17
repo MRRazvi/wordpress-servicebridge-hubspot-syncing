@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "536eb74f40a3338ff37def66d9b040fe",
+    "content-hash": "a91dda233c51c958f8458f3daef8c6b3",
     "packages": [
         {
             "name": "accentinteractive/laravel-logcleaner",
@@ -962,16 +962,16 @@
         },
         {
             "name": "hubspot/api-client",
-            "version": "9.1.0",
+            "version": "9.4.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/HubSpot/hubspot-api-php.git",
-                "reference": "e03278a0dc868cab4738136e95e275b73bd8e43c"
+                "reference": "2b7f206a5a2590bd3545d2c87038726332b8b4ac"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/HubSpot/hubspot-api-php/zipball/e03278a0dc868cab4738136e95e275b73bd8e43c",
-                "reference": "e03278a0dc868cab4738136e95e275b73bd8e43c",
+                "url": "https://api.github.com/repos/HubSpot/hubspot-api-php/zipball/2b7f206a5a2590bd3545d2c87038726332b8b4ac",
+                "reference": "2b7f206a5a2590bd3545d2c87038726332b8b4ac",
                 "shasum": ""
             },
             "require": {
@@ -1016,9 +1016,9 @@
             ],
             "support": {
                 "issues": "https://github.com/HubSpot/hubspot-api-php/issues",
-                "source": "https://github.com/HubSpot/hubspot-api-php/tree/9.1.0"
+                "source": "https://github.com/HubSpot/hubspot-api-php/tree/9.4.0"
             },
-            "time": "2022-12-06T13:27:37+00:00"
+            "time": "2023-03-02T12:15:16+00:00"
         },
         {
             "name": "hubspot/hubspot-php",
