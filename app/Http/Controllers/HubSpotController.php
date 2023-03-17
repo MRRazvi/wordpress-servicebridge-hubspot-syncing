@@ -104,11 +104,32 @@ class HubSpotController
     public function create_deal($contact_id, $data)
     {
         try {
+            // create deal
             $deal_data = new \HubSpot\Client\Crm\Deals\Model\SimplePublicObjectInput();
             $deal_data->setProperties($data);
 
-            $updated_deal = $this->client->crm()->deals()->basicApi()->create($deal_data);
-            return $updated_deal['id'] ?? false;
+            $new_deal = $this->client->crm()->deals()->basicApi()->create($deal_data);
+            if ($new_deal['id']) {
+                // associate contact
+                $associationRequest = new \HubSpot\Client\Crm\Associations\Model\BatchInputPublicAssociation();
+                $associationRequest->setInputs([
+                    [
+                        "from" => [
+                            "id" => $contact_id,
+                            "type" => "contact"
+                        ],
+                        "to" => [
+                            "id" => $new_deal['id'],
+                            "type" => "deal"
+                        ],
+                        "type" => "contact_to_deal"
+                    ]
+                ]);
+
+                $this->client->crm()->associations()->batchApi()->create('contacts', 'deals', $associationRequest);
+            }
+
+            return $new_deal['id'] ?? false;
         } catch (\Exception $e) {
             Log::channel('hs-sync')->error('create_deal', [
                 'code' => $e->getCode(),
