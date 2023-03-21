@@ -42,7 +42,7 @@ We have 4 bots to do multiple things, and we will discuss them one by one.
         -   go on estimate one by one
             -   increment the try
             -   get latest estimate data via **estimate_id** from database
-            -   check the status if not from our list (Finished, WonEstimate, LostEstimate) skip it otherwise move on
+            -   check the status if not from our list (Finished, WonEstimate, LostEstimate, OpenEstimate) skip it otherwise move on
             -   get customer data from HS api
             -   get contact data from HS api
             -   get service location from HS api
