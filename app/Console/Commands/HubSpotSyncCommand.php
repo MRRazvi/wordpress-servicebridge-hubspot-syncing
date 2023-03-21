@@ -220,6 +220,8 @@ class HubSpotSyncCommand extends Command
                 return 'EST Lost';
             case 'Finished':
                 return 'EST Finish';
+            case 'OpenEstimate':
+                return 'EST Open';
             default:
                 return '';
         }
