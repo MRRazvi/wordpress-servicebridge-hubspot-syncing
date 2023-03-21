@@ -48,7 +48,7 @@ class HubSpotSyncCommand extends Command
                     $sb = $sb_accounts[$estimate->sb_account_id];
                     $job = $sb->get_estimate($estimate->estimate_id);
 
-                    if ($job->Status != 'Finished' && $job->Status != 'WonEstimate' && $job->Status != 'LostEstimate') {
+                    if ($job->Status != 'Finished' && $job->Status != 'WonEstimate' && $job->Status != 'LostEstimate' && $job->Status != 'OpenEstimate') {
                         $estimate->synced = true;
                         $estimate->save();
                         continue;
