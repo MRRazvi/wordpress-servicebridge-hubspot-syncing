@@ -47,13 +47,13 @@ class HubSpotController
     {
         try {
             $contact = $this->get_contact($email);
-            $contact_id = $contact['id'];
 
             $contact_data = new \HubSpot\Client\Crm\Contacts\Model\SimplePublicObjectInput();
             $contact_data->setProperties($data);
 
             if ($contact) {
                 // update contact
+                $contact_id = $contact['id'];
                 $updated_contact = $this->client->crm()->contacts()->basicApi()->update($contact_id, $contact_data);
                 return $updated_contact['id'] ?? false;
             } else {
@@ -65,7 +65,8 @@ class HubSpotController
             Log::channel('hs-sync')->error('create_update_contact', [
                 'code' => $e->getCode(),
                 'file' => $e->getFile(),
-                'message' => $e->getMessage()
+                'message' => $e->getMessage(),
+                'line' => $e->getLine()
             ]);
         }
     }
